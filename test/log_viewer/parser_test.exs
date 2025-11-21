@@ -2,6 +2,7 @@ defmodule LogViewer.ParserTest do
   use ExUnit.Case, async: true
 
   alias LogViewer.Parser
+  alias LogViewer.Parser.{ClientLogEntry, ServerLogEntry}
 
   @client_fixture_path Path.join([__DIR__, "..", "fixtures", "client_logs.json"])
   @server_fixture_path Path.join([__DIR__, "..", "fixtures", "server_logs.txt"])
@@ -156,6 +157,42 @@ defmodule LogViewer.ParserTest do
       memory_log = Enum.find(logs, fn log -> log.module == "memory" end)
       assert memory_log != nil
       assert memory_log.message =~ "Stored doc"
+    end
+  end
+
+  describe "detect_and_parse/1" do
+    test "detects and parses client JSON logs" do
+      content = File.read!(@client_fixture_path)
+
+      assert {:ok, :client, logs} = Parser.detect_and_parse(content)
+      assert is_list(logs)
+      assert length(logs) > 0
+      assert %ClientLogEntry{} = List.first(logs)
+    end
+
+    test "detects and parses server text logs" do
+      content = File.read!(@server_fixture_path)
+
+      assert {:ok, :server, logs} = Parser.detect_and_parse(content)
+      assert is_list(logs)
+      assert length(logs) > 0
+      assert %ServerLogEntry{} = List.first(logs)
+    end
+
+    test "returns error for invalid JSON" do
+      content = "{invalid json]"
+
+      assert {:error, :unknown_format} = Parser.detect_and_parse(content)
+    end
+
+    test "returns error for plain text that doesn't match server format" do
+      content = "Just some random text\nwith no log structure"
+
+      assert {:error, :unknown_format} = Parser.detect_and_parse(content)
+    end
+
+    test "returns error for empty string" do
+      assert {:error, :unknown_format} = Parser.detect_and_parse("")
     end
   end
 end

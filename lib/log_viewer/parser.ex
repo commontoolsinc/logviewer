@@ -196,4 +196,63 @@ defmodule LogViewer.Parser do
     # Return as Unix milliseconds
     DateTime.to_unix(datetime, :millisecond)
   end
+
+  @doc """
+  Detects log format and parses the content automatically.
+
+  Tries to parse as JSON client logs first, then as text server logs.
+  Returns the log type along with parsed entries.
+
+  ## Examples
+
+      iex> json = ~s({"exportedAt": 123, "logs": []})
+      iex> {:ok, :client, logs} = LogViewer.Parser.detect_and_parse(json)
+      iex> is_list(logs)
+      true
+  """
+  @spec detect_and_parse(String.t()) ::
+          {:ok, :client, list(ClientLogEntry.t())}
+          | {:ok, :server, list(ServerLogEntry.t())}
+          | {:error, :unknown_format}
+  def detect_and_parse(content) when is_binary(content) do
+    cond do
+      # Try parsing as JSON client log
+      json_result = try_parse_client(content) ->
+        json_result
+
+      # Try parsing as server text log
+      text_result = try_parse_server(content) ->
+        text_result
+
+      # Unknown format
+      true ->
+        {:error, :unknown_format}
+    end
+  end
+
+  # Attempt to parse as client JSON logs
+  @spec try_parse_client(String.t()) ::
+          {:ok, :client, list(ClientLogEntry.t())} | false
+  defp try_parse_client(content) when is_binary(content) do
+    case parse_client_json(content) do
+      {:ok, %ClientParsedData{logs: logs}} when is_list(logs) and length(logs) > 0 ->
+        {:ok, :client, logs}
+
+      _ ->
+        false
+    end
+  end
+
+  # Attempt to parse as server text logs
+  @spec try_parse_server(String.t()) ::
+          {:ok, :server, list(ServerLogEntry.t())} | false
+  defp try_parse_server(content) when is_binary(content) do
+    case parse_server_logs(content) do
+      logs when is_list(logs) and length(logs) > 0 ->
+        {:ok, :server, logs}
+
+      _ ->
+        false
+    end
+  end
 end
