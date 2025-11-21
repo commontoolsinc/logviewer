@@ -131,22 +131,25 @@ defmodule LogViewer.EntityExtractor do
   """
   @spec build_entity_index(list(LogEvent.t())) :: EntityIndex.t()
   def build_entity_index(events) when is_list(events) do
-    # Build a map of entity_id => {type, list of {event, timestamp}}
+    # Step 1: Build inverted index - maps each entity_id to all events that mention it
+    # Result: %{"baedrei..." => {:doc_id, [{event1, ts1}, {event2, ts2}]}}
     entity_events =
       Enum.reduce(events, %{}, fn event, acc ->
         entities = extract_entities(event.message)
 
-        # Process each entity type separately to preserve classification
+        # Process each entity type separately to preserve classification from extract_entities
         acc
         |> add_entities_with_type(entities.doc_ids, :doc_id, event)
         |> add_entities_with_type(entities.charm_ids, :charm_id, event)
         |> add_entities_with_type(entities.space_ids, :space_id, event)
       end)
 
-    # Build EntityInfo for each entity
+    # Step 2: Convert to EntityInfo structs with metadata (first_seen, last_seen, etc.)
+    # Result: %{"baedrei..." => %EntityInfo{id: "baedrei...", first_seen: 100, ...}}
     entities_map =
       entity_events
       |> Enum.map(fn {entity_id, {entity_type, event_timestamp_pairs}} ->
+        # Extract timestamps to calculate first_seen/last_seen
         timestamps = Enum.map(event_timestamp_pairs, fn {_event, ts} -> ts end)
         events_list = Enum.map(event_timestamp_pairs, fn {event, _ts} -> event end)
 
@@ -163,7 +166,8 @@ defmodule LogViewer.EntityExtractor do
       end)
       |> Map.new()
 
-    # Group by type
+    # Step 3: Build type-based lookup lists for quick filtering
+    # Result: %{doc_ids: ["baedrei1", "baedrei2"], charm_ids: [...], space_ids: [...]}
     by_type = %{
       doc_ids:
         entities_map
@@ -185,6 +189,8 @@ defmodule LogViewer.EntityExtractor do
     }
   end
 
+  # Helper: Add a list of entity IDs to the accumulator map, preserving their type
+  # For each entity_id: if new, create entry; if existing, append to event list
   @spec add_entities_with_type(map(), list(String.t()), atom(), LogEvent.t()) :: map()
   defp add_entities_with_type(acc, entity_ids, entity_type, event)
        when is_map(acc) and is_list(entity_ids) and is_atom(entity_type) do
