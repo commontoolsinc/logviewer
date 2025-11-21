@@ -164,7 +164,7 @@ defmodule LogViewer.EntityExtractor do
 
         {entity_id, entity_info}
       end)
-      |> Map.new()
+      |> Map.new()  # Convert list of tuples to map for O(1) lookups
 
     # Step 3: Build type-based lookup lists for quick filtering
     # Result: %{doc_ids: ["baedrei1", "baedrei2"], charm_ids: [...], space_ids: [...]}
