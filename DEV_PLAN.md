@@ -475,6 +475,76 @@ For each feature:
 
 ---
 
+## Elixir Code Style & Best Practices
+
+### Type Safety
+
+- **All functions must have `@spec` typespecs** (both public and private)
+- **One `@spec` per function** - covers all clauses, not one per clause
+- **Use specific types** where possible: `list(map())` instead of `list()`
+- **Run `mix dialyzer`** on every change to verify types
+
+### Guards
+
+- **Add guards to all functions** that accept specific types
+- **Use `is_binary()` for strings** (strings are binaries in Elixir)
+- **Use `is_map()` for maps**, `is_list()` for lists, etc.
+- **Prefer pattern matching failure** over catch-all clauses with error returns
+  - Let functions fail with `FunctionClauseError` for invalid input types
+  - Only use explicit error returns for business logic errors
+
+### Data Validation
+
+- **Use Ecto embedded schemas** for validating external data (JSON, etc.)
+- **Use changesets** for validation with `cast/3` and `validate_required/2`
+- **Pattern match on structs** to extract validated fields
+- **Use `struct!/2`** to convert maps to structs with automatic atom key conversion
+
+### Examples
+
+**Good:**
+```elixir
+@spec parse_log(String.t()) :: {:ok, Log.t()} | {:error, String.t()}
+def parse_log(text) when is_binary(text) do
+  # Implementation
+end
+
+@spec parse_entries(list(map())) :: {:ok, list(Entry.t())}
+defp parse_entries(entries) when is_list(entries) do
+  Enum.map(entries, fn entry ->
+    struct!(Entry, Map.new(entry, fn {k, v} -> {String.to_atom(k), v} end))
+  end)
+end
+```
+
+**Bad:**
+```elixir
+# Missing guards, no typespec
+def parse_log(text) do
+  # Implementation
+end
+
+# Multiple specs for one function
+@spec parse_entries(list()) :: {:ok, list(Entry.t())}
+defp parse_entries(entries) when is_list(entries) do
+  # ...
+end
+
+@spec parse_entries(any()) :: {:error, String.t()}
+defp parse_entries(_), do: {:error, "Invalid input"}
+```
+
+### Testing Workflow
+
+1. **Write tests first** (TDD)
+2. **Run `mix test`** to verify tests fail
+3. **Implement feature**
+4. **Run `mix test`** to verify tests pass
+5. **Run `mix dialyzer`** to verify types
+6. **Refactor** if needed, keeping tests green
+
+---
+
 ## Notes
 
 - Use ExUnit for all testing

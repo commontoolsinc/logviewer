@@ -1,0 +1,8 @@
+[INFO][toolshed::14:30:45.123] Server started on port 8000
+[INFO][memory::14:30:45.456] Stored doc baedreic7dvjvssmh6b62azkrx6o4wmymbbwffgx3brpte2ykm3y6ukepzm
+[DEBUG][runner::14:30:45.789] Running charm baedreiabc123xyz456def789ghi012jkl345mno678pqr901stu234vwx567yzab
+[ERROR][cache::14:30:46.012] Cache miss for docID baedreic7dvjvssmh6b62azkrx6o4wmymbbwffgx3brpte2ykm3y6ukepzm in space did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK
+[WARN][scheduler::14:30:46.345] Task delayed by 150ms
+[INFO][memory::14:30:46.678] Processing request for space did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK
+This line has no log format and should be skipped
+[ERROR][network::14:30:47.001] Connection timeout after 5000ms
