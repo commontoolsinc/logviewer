@@ -1,0 +1,50 @@
+{
+  "exportedAt": 1732204800000,
+  "logs": [
+    {
+      "timestamp": 1732204800100,
+      "level": "info",
+      "module": "memory",
+      "key": "storage",
+      "messages": [
+        "Stored doc",
+        "baedreic7dvjvssmh6b62azkrx6o4wmymbbwffgx3brpte2ykm3y6ukepzm"
+      ]
+    },
+    {
+      "timestamp": 1732204800250,
+      "level": "debug",
+      "module": "runner",
+      "key": "execution",
+      "messages": [
+        "Running charm",
+        {
+          "charmId": "baedreiabc123xyz456def789ghi012jkl345mno678pqr901stu234vwx567yzab"
+        }
+      ]
+    },
+    {
+      "timestamp": 1732204800500,
+      "level": "error",
+      "module": "cache",
+      "key": "miss",
+      "messages": [
+        "Cache miss for docID",
+        "baedreic7dvjvssmh6b62azkrx6o4wmymbbwffgx3brpte2ykm3y6ukepzm",
+        "in space",
+        "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK"
+      ]
+    },
+    {
+      "timestamp": 1732204800750,
+      "level": "warn",
+      "module": "scheduler",
+      "key": "delay",
+      "messages": [
+        "Task delayed by",
+        150,
+        "ms"
+      ]
+    }
+  ]
+}
