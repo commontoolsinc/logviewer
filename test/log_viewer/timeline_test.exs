@@ -1,10 +1,8 @@
 defmodule LogViewer.TimelineTest do
   use ExUnit.Case, async: true
 
-  alias LogViewer.Parser
   alias LogViewer.Parser.{ClientLogEntry, ServerLogEntry}
   alias LogViewer.Timeline
-  alias LogViewer.Timeline.LogEvent
 
   describe "from_client_entry/1" do
     test "converts ClientLogEntry to LogEvent" do
