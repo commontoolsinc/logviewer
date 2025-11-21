@@ -130,22 +130,14 @@ describe "build_entity_index/1" do
   test "counts total events per entity"
   test "groups by entity type (docID, charmID, spaceID)"
 end
-
-describe "correlate_events/3" do
-  test "finds events within time window"
-  test "marks events as exact match (<100ms)"
-  test "marks events as nearby match (<1s)"
-  test "handles no matching events"
-end
 ```
 
-**Implementation**: `lib/log_viewer/timeline.ex`
-- Define `LogEvent` struct
-- Define `Timeline` struct
-- Define `EntityIndex` struct
-- Implement `build_timeline/2`
-- Implement `build_entity_index/1`
-- Implement `correlate_events/3`
+**Implementation**: `lib/log_viewer/timeline.ex` and `lib/log_viewer/entity_extractor.ex`
+- Define `LogEvent` struct ✅
+- Implement `build_timeline/2` ✅
+- Define `EntityIndex` struct ✅
+- Implement `build_entity_index/1` ✅
+- Note: Entity-based correlation already provided by EntityIndex
 
 **TDD Steps**:
 1. Write comprehensive tests with mixed log data
