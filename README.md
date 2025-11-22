@@ -41,6 +41,13 @@ expected json format:
 
 ### server logs
 
+to collect server logs from toolshed:
+
+1. start the dev servers using `./scripts/restart-local-dev.sh` from the labs repository root
+2. interact with the application to generate logs
+3. the toolshed logs are written to `packages/toolshed/local-dev-toolshed.log`
+4. upload that log file to the log viewer
+
 toolshed text format:
 
 ```
