@@ -12,7 +12,7 @@ defmodule LogViewerWeb.TimelineLive do
      |> assign(:timeline, [])
      |> assign(:entity_index, nil)
      |> allow_upload(:log_files,
-       accept: ~w(.json .txt),
+       accept: ~w(.json .log),
        max_entries: 10,
        max_file_size: 100_000_000,
        auto_upload: true,
@@ -30,6 +30,8 @@ defmodule LogViewerWeb.TimelineLive do
     {:noreply, cancel_upload(socket, :log_files, ref)}
   end
 
+  # Note: handle_progress is not a LiveView callback, it's passed to allow_upload
+  # so it doesn't need @impl true
   def handle_progress(:log_files, entry, socket) do
     require Logger
 
@@ -133,7 +135,7 @@ defmodule LogViewerWeb.TimelineLive do
               Choose Files
             </label>
             <p class="mt-4 text-gray-600">
-              Upload client.json and/or server.txt files
+              Upload .json or .log files
             </p>
           </div>
 

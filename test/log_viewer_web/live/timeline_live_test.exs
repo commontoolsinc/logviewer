@@ -4,7 +4,7 @@ defmodule LogViewerWeb.TimelineLiveTest do
   import Phoenix.LiveViewTest
 
   @client_fixture_path Path.join([__DIR__, "..", "..", "fixtures", "client_logs.json"])
-  @server_fixture_path Path.join([__DIR__, "..", "..", "fixtures", "server_logs.txt"])
+  @server_fixture_path Path.join([__DIR__, "..", "..", "fixtures", "server_logs.log"])
 
   describe "mount/3" do
     test "initializes with empty state", %{conn: conn} do
@@ -62,12 +62,12 @@ defmodule LogViewerWeb.TimelineLiveTest do
       file =
         file_input(view, "#upload-form", :log_files, [
           %{
-            name: "server.txt",
+            name: "server.log",
             content: server_content
           }
         ])
 
-      render_upload(file, "server.txt")
+      render_upload(file, "server.log")
 
       # Trigger validate event to process the upload
       render_change(view, "validate", %{})
@@ -99,10 +99,10 @@ defmodule LogViewerWeb.TimelineLiveTest do
 
       server_file =
         file_input(view, "#upload-form", :log_files, [
-          %{name: "server.txt", content: server_content}
+          %{name: "server.log", content: server_content}
         ])
 
-      render_upload(server_file, "server.txt")
+      render_upload(server_file, "server.log")
       render_change(view, "validate", %{})
 
       # Verify timeline contains both client and server events

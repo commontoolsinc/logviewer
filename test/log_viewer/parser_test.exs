@@ -5,7 +5,7 @@ defmodule LogViewer.ParserTest do
   alias LogViewer.Parser.{ClientLogEntry, ServerLogEntry}
 
   @client_fixture_path Path.join([__DIR__, "..", "fixtures", "client_logs.json"])
-  @server_fixture_path Path.join([__DIR__, "..", "fixtures", "server_logs.txt"])
+  @server_fixture_path Path.join([__DIR__, "..", "fixtures", "server_logs.log"])
 
   describe "parse_client_json/1" do
     test "parses valid client JSON export" do

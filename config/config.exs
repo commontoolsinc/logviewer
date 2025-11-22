@@ -60,6 +60,12 @@ config :logger, :default_formatter,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+# Register .log files as text/plain MIME type
+# Note: We must include existing extensions to avoid overriding them
+config :mime, :types, %{
+  "text/plain" => ["txt", "text", "conf", "def", "list", "log", "in", "rst"]
+}
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

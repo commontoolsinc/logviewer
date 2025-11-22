@@ -5,7 +5,7 @@ a phoenix liveview app for viewing and analyzing client and server logs from com
 ## features
 
 - unified timeline view merging client and server logs by timestamp
-- automatic log format detection (client json export or server text logs)
+- automatic log format detection (client json export or server log files)
 - entity extraction for doc ids, charm ids, and space ids
 - drag and drop file upload supporting multiple files up to 100mb each
 - real-time parsing and display with phoenix liveview
