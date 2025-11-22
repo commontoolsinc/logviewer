@@ -24,26 +24,43 @@ defmodule LogViewer.Parser do
     Raw JSON data structure from Jason.decode/1 before parsing.
     Uses Ecto for validation and type casting.
     Maps directly to the JSON structure with camelCase field names.
+
+    Matches the production client log export format.
     """
     use Ecto.Schema
     import Ecto.Changeset
 
     @primary_key false
     embedded_schema do
-      field :exportedAt, :integer
+      # Timestamp from production format
+      field :exportedTimestamp, :integer
+
+      # Additional metadata from real client logs
+      field :exported, :string
+      field :dbName, :string
+      field :storeName, :string
+      field :totalEntries, :integer
+      field :sessionInfo, :map
+
+      # Log entries (required)
       field :logs, {:array, :map}
     end
 
     @type t :: %__MODULE__{
-            exportedAt: integer(),
+            exportedTimestamp: integer(),
+            exported: String.t() | nil,
+            dbName: String.t() | nil,
+            storeName: String.t() | nil,
+            totalEntries: integer() | nil,
+            sessionInfo: map() | nil,
             logs: list(map())
           }
 
     @spec changeset(map()) :: Ecto.Changeset.t()
     def changeset(attrs) do
       %__MODULE__{}
-      |> cast(attrs, [:exportedAt, :logs])
-      |> validate_required([:exportedAt, :logs])
+      |> cast(attrs, [:exportedTimestamp, :exported, :dbName, :storeName, :totalEntries, :sessionInfo, :logs])
+      |> validate_required([:exportedTimestamp, :logs])
     end
   end
 
@@ -81,7 +98,7 @@ defmodule LogViewer.Parser do
 
   ## Examples
 
-      iex> json = ~s({"exportedAt": 123456789, "logs": []})
+      iex> json = ~s({"exportedTimestamp": 123456789, "logs": []})
       iex> LogViewer.Parser.parse_client_json(json)
       {:ok, %LogViewer.Parser.ClientParsedData{exported_at: 123456789, logs: []}}
 
@@ -106,12 +123,12 @@ defmodule LogViewer.Parser do
     case changeset do
       %{valid?: true} ->
         # Pattern match to extract validated fields
-        %ClientJSONData{exportedAt: exported_at, logs: logs_data} =
+        %ClientJSONData{exportedTimestamp: exported_timestamp, logs: logs_data} =
           Ecto.Changeset.apply_changes(changeset)
 
         # Parse log entries
         {:ok, logs} = parse_log_entries(logs_data)
-        {:ok, %ClientParsedData{exported_at: exported_at, logs: logs}}
+        {:ok, %ClientParsedData{exported_at: exported_timestamp, logs: logs}}
 
       %{valid?: false} ->
         errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
@@ -205,7 +222,7 @@ defmodule LogViewer.Parser do
 
   ## Examples
 
-      iex> json = ~s({"exportedAt": 123, "logs": []})
+      iex> json = ~s({"exportedTimestamp": 123, "logs": []})
       iex> {:ok, :client, logs} = LogViewer.Parser.detect_and_parse(json)
       iex> is_list(logs)
       true

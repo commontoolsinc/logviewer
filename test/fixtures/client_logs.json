@@ -1,50 +1,124 @@
 {
-  "exportedAt": 1732204800000,
+  "dbName": "ct-client-logs",
+  "exported": "2025-11-21T20:03:02.416Z",
+  "exportedTimestamp": 1763755382416,
   "logs": [
     {
-      "timestamp": 1732204800100,
-      "level": "info",
-      "module": "memory",
-      "key": "storage",
-      "messages": [
-        "Stored doc",
-        "baedreic7dvjvssmh6b62azkrx6o4wmymbbwffgx3brpte2ykm3y6ukepzm"
-      ]
-    },
-    {
-      "timestamp": 1732204800250,
-      "level": "debug",
-      "module": "runner",
-      "key": "execution",
-      "messages": [
-        "Running charm",
-        {
-          "charmId": "baedreiabc123xyz456def789ghi012jkl345mno678pqr901stu234vwx567yzab"
-        }
-      ]
-    },
-    {
-      "timestamp": 1732204800500,
+      "key": "storage-error",
       "level": "error",
-      "module": "cache",
-      "key": "miss",
       "messages": [
-        "Cache miss for docID",
-        "baedreic7dvjvssmh6b62azkrx6o4wmymbbwffgx3brpte2ykm3y6ukepzm",
-        "in space",
-        "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK"
-      ]
+        "read Error",
+        {},
+        {
+          "id": "of:baedreigmsmh34uq4qfkaq56uwjg4ayg5do3p2npnaaeqt6etwcycbro2g4",
+          "path": [
+            "value",
+            "internal",
+            "__#2stream",
+            "/",
+            "link@1"
+          ],
+          "rootSchema": true,
+          "space": "did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8",
+          "type": "application/json"
+        },
+        null
+      ],
+      "module": "extended-storage-transaction",
+      "timestamp": 1763753972077
     },
     {
-      "timestamp": 1732204800750,
-      "level": "warn",
-      "module": "scheduler",
-      "key": "delay",
+      "key": "storage-error",
+      "level": "error",
       "messages": [
-        "Task delayed by",
-        150,
-        "ms"
-      ]
+        "read Error",
+        {},
+        {
+          "id": "of:baedreigmsmh34uq4qfkaq56uwjg4ayg5do3p2npnaaeqt6etwcycbro2g4",
+          "path": [
+            "value",
+            "internal",
+            "__#2stream",
+            "$alias",
+            "path"
+          ],
+          "rootSchema": true,
+          "space": "did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8",
+          "type": "application/json"
+        },
+        null
+      ],
+      "module": "extended-storage-transaction",
+      "timestamp": 1763753972077
+    },
+    {
+      "key": "storage-error",
+      "level": "error",
+      "messages": [
+        "read Error",
+        {},
+        {
+          "id": "of:baedreigmsmh34uq4qfkaq56uwjg4ayg5do3p2npnaaeqt6etwcycbro2g4",
+          "path": [
+            "value",
+            "internal",
+            "__#2stream",
+            "cell",
+            "/"
+          ],
+          "rootSchema": true,
+          "space": "did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8",
+          "type": "application/json"
+        },
+        null
+      ],
+      "module": "extended-storage-transaction",
+      "timestamp": 1763753972077
+    },
+    {
+      "key": "storage",
+      "level": "info",
+      "messages": [
+        "readOrThrow, initial Success",
+        {
+          "address": {
+            "id": "of:baedreigmsmh34uq4qfkaq56uwjg4ayg5do3p2npnaaeqt6etwcycbro2g4",
+            "path": [
+              "value",
+              "internal",
+              "__#2stream"
+            ],
+            "rootSchema": true,
+            "type": "application/json"
+          },
+          "value": {
+            "$stream": true
+          }
+        },
+        {
+          "id": "of:baedreigmsmh34uq4qfkaq56uwjg4ayg5do3p2npnaaeqt6etwcycbro2g4",
+          "path": [
+            "value",
+            "internal",
+            "__#2stream"
+          ],
+          "rootSchema": true,
+          "space": "did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8",
+          "type": "application/json"
+        },
+        {
+          "meta": {}
+        }
+      ],
+      "module": "extended-storage-transaction",
+      "timestamp": 1763753972078
     }
-  ]
+  ],
+  "sessionInfo": {
+    "platform": "Linux x86_64",
+    "url": "http://127.0.0.1:5173/ellyse/baedreic7dvjvssmh6b62azkrx6o4wmymbbwffgx3brpte2ykm3y6ukepzm",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:144.0) Gecko/20100101 Firefox/144.0"
+  },
+  "storeName": "entries",
+  "totalEntries": 4
 }

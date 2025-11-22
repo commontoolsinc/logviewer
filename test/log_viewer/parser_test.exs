@@ -12,7 +12,8 @@ defmodule LogViewer.ParserTest do
       json = File.read!(@client_fixture_path)
 
       assert {:ok, export} = Parser.parse_client_json(json)
-      assert export.exported_at == 1_732_204_800_000
+      # Real production format uses exportedTimestamp
+      assert export.exported_at == 1_763_755_382_416
       assert is_list(export.logs)
       assert length(export.logs) == 4
     end
@@ -23,14 +24,14 @@ defmodule LogViewer.ParserTest do
       assert {:ok, export} = Parser.parse_client_json(json)
       [first_log | _] = export.logs
 
-      assert first_log.timestamp == 1_732_204_800_100
-      assert first_log.level == "info"
-      assert first_log.module == "memory"
-      assert first_log.key == "storage"
-      assert first_log.messages == [
-        "Stored doc",
-        "baedreic7dvjvssmh6b62azkrx6o4wmymbbwffgx3brpte2ykm3y6ukepzm"
-      ]
+      # Real production log data
+      assert first_log.timestamp == 1_763_753_972_077
+      assert first_log.level == "error"
+      assert first_log.module == "extended-storage-transaction"
+      assert first_log.key == "storage-error"
+      assert is_list(first_log.messages)
+      assert length(first_log.messages) == 4
+      assert List.first(first_log.messages) == "read Error"
     end
 
     test "handles multiple log entries" do
@@ -39,12 +40,10 @@ defmodule LogViewer.ParserTest do
       assert {:ok, export} = Parser.parse_client_json(json)
       assert length(export.logs) == 4
 
-      # Check different log levels are preserved
+      # Check different log levels are preserved (real data has error and info)
       levels = Enum.map(export.logs, & &1.level)
       assert "info" in levels
-      assert "debug" in levels
       assert "error" in levels
-      assert "warn" in levels
     end
 
     test "returns error for invalid JSON" do
@@ -56,7 +55,7 @@ defmodule LogViewer.ParserTest do
 
     test "returns error for missing required fields" do
       # Missing 'logs' field
-      invalid_export = ~s({"exportedAt": 123456789})
+      invalid_export = ~s({"exportedTimestamp": 123456789})
 
       assert {:error, reason} = Parser.parse_client_json(invalid_export)
       assert reason =~ "Invalid data"
@@ -68,9 +67,15 @@ defmodule LogViewer.ParserTest do
 
       assert {:ok, export} = Parser.parse_client_json(json)
 
-      # Find the log with mixed message types (string and number)
-      warn_log = Enum.find(export.logs, fn log -> log.level == "warn" end)
-      assert warn_log.messages == ["Task delayed by", 150, "ms"]
+      # Real production data has messages with strings, objects, and null
+      [first_log | _] = export.logs
+      assert is_list(first_log.messages)
+      # Messages contain: string, empty map, object, null
+      assert length(first_log.messages) == 4
+      assert is_binary(Enum.at(first_log.messages, 0))  # "read Error"
+      assert is_map(Enum.at(first_log.messages, 1))     # {}
+      assert is_map(Enum.at(first_log.messages, 2))     # storage address object
+      assert is_nil(Enum.at(first_log.messages, 3))     # null
     end
 
     test "handles messages with nested objects" do
@@ -78,15 +83,99 @@ defmodule LogViewer.ParserTest do
 
       assert {:ok, export} = Parser.parse_client_json(json)
 
-      # Find the log with object in messages
-      debug_log = Enum.find(export.logs, fn log -> log.level == "debug" end)
-      assert is_list(debug_log.messages)
-      assert length(debug_log.messages) == 2
+      # Real production data has complex nested objects in messages
+      [first_log | _] = export.logs
+      # Third message is a storage address object with nested structure
+      storage_obj = Enum.at(first_log.messages, 2)
+      assert is_map(storage_obj)
+      assert Map.has_key?(storage_obj, "id")
+      assert Map.has_key?(storage_obj, "path")
+      assert is_list(storage_obj["path"])
+    end
 
-      # Second message should be a map with charmId
-      [_first, second] = debug_log.messages
-      assert is_map(second)
-      assert Map.has_key?(second, "charmId")
+    test "parses real client logs with exportedTimestamp format" do
+      # Real production format with exportedTimestamp instead of exportedAt
+      json = ~s({
+        "exported": "2025-11-21T20:03:02.416Z",
+        "exportedTimestamp": 1763755382416,
+        "dbName": "ct-client-logs",
+        "storeName": "entries",
+        "totalEntries": 2,
+        "sessionInfo": {
+          "userAgent": "Mozilla/5.0",
+          "url": "http://localhost:5173",
+          "platform": "Linux x86_64"
+        },
+        "logs": [
+          {
+            "timestamp": 1763753972077,
+            "level": "error",
+            "module": "storage",
+            "key": "read-error",
+            "messages": ["Error reading", "doc123"]
+          },
+          {
+            "timestamp": 1763753972100,
+            "level": "info",
+            "module": "cache",
+            "key": "hit",
+            "messages": ["Cache hit", "key456"]
+          }
+        ]
+      })
+
+      assert {:ok, export} = Parser.parse_client_json(json)
+      assert export.exported_at == 1763755382416
+      assert length(export.logs) == 2
+      assert List.first(export.logs).level == "error"
+    end
+
+    test "rejects when exportedTimestamp is missing" do
+      # Missing exportedTimestamp field
+      json = ~s({
+        "dbName": "ct-client-logs",
+        "logs": [
+          {
+            "timestamp": 123,
+            "level": "info",
+            "module": "test",
+            "key": "key",
+            "messages": ["msg"]
+          }
+        ]
+      })
+
+      assert {:error, reason} = Parser.parse_client_json(json)
+      assert reason =~ "Invalid data"
+      assert reason =~ "exportedTimestamp"
+    end
+
+    test "accepts production format with all metadata fields" do
+      json = ~s({
+        "exportedTimestamp": 1763755382416,
+        "exported": "2025-11-21T20:03:02.416Z",
+        "dbName": "ct-client-logs",
+        "storeName": "entries",
+        "totalEntries": 1,
+        "sessionInfo": {
+          "userAgent": "Mozilla/5.0",
+          "url": "http://localhost:5173",
+          "platform": "Linux x86_64"
+        },
+        "logs": [
+          {
+            "timestamp": 123,
+            "level": "info",
+            "module": "test",
+            "key": "key",
+            "messages": ["msg"]
+          }
+        ]
+      })
+
+      assert {:ok, export} = Parser.parse_client_json(json)
+      assert export.exported_at == 1763755382416
+      assert length(export.logs) == 1
     end
   end
 

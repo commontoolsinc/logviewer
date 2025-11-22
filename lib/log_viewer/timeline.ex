@@ -121,7 +121,13 @@ defmodule LogViewer.Timeline do
   @spec messages_to_string(list()) :: String.t()
   defp messages_to_string(messages) when is_list(messages) do
     messages
-    |> Enum.map(&to_string/1)
+    |> Enum.map(&message_part_to_string/1)
     |> Enum.join(" ")
   end
+
+  # Convert a message part to string, handling maps/lists as JSON and nil as empty string
+  defp message_part_to_string(nil), do: ""
+  defp message_part_to_string(part) when is_map(part), do: Jason.encode!(part)
+  defp message_part_to_string(part) when is_list(part), do: Jason.encode!(part)
+  defp message_part_to_string(part), do: to_string(part)
 end
