@@ -10,11 +10,13 @@ This document outlines the development plan for the LogViewer Phoenix LiveView a
 - **Phase 3.1: Event Card Component** - Separate, testable component with full test coverage
 
 ### 🚧 In Progress
-- **Phase 3.2-3.3: Additional UI Components** - Entity lists and modals not yet implemented
-- **Phase 4: Polish & Features** - Statistics and search features pending
+- **Phase 4.2b: True Fuzzy Search** - Upgrading from substring to fuzzy matching (like Helix)
+
+### ✅ Recently Completed
+- **Phase 4.2a: Substring Search** - Case-insensitive substring search with highlighting implemented and tested
 
 ### 📋 Next Steps
-1. Implement fuzzy search with text highlighting
+1. Complete true fuzzy search implementation (characters in order, not consecutive)
 2. Add entity list and detail components
 3. Build statistics dashboard
 
@@ -369,11 +371,13 @@ end
 
 ---
 
-### 4.2 Fuzzy Search & Filtering
+### 4.2a Substring Search & Filtering ✅ COMPLETE
 
-**Test File**: `test/log_viewer/search_test.exs`
+**Status**: Implemented with 17 passing tests
 
-**Test Cases**:
+**Test File**: `test/log_viewer/search_test.exs` ✅
+
+**Completed Test Cases**:
 ```elixir
 describe "search_timeline/2" do
   test "performs fuzzy substring search across message, module, level"
@@ -445,6 +449,84 @@ end
 6. Update LiveView for search input
 7. Update event_card to use highlighting
 8. Run all tests - should pass
+
+---
+
+### 4.2b True Fuzzy Search ✅ COMPLETE
+
+**Goal**: Upgrade from substring matching to true fuzzy matching like Helix editor, where "kep" matches "k**e**fo**p**m" (characters in order, not necessarily consecutive).
+
+**Completed**:
+- ✅ RED PHASE: Added 9 failing tests for fuzzy_match?/2
+- ✅ GREEN PHASE: Implemented recursive fuzzy matching algorithm
+- ✅ All 92 tests passing (updated 2 existing tests for fuzzy behavior)
+- ✅ Playwright tested: "rnr" successfully matches "runner" module in browser
+
+**Test File**: `test/log_viewer/search_test.exs` (add new tests)
+
+**New Test Cases**:
+```elixir
+describe "fuzzy_match?/2" do
+  test "matches characters in order: 'kep' matches 'kefoijsdofijm'"
+  test "matches characters in order: 'stt' matches 'storage-transaction'"
+  test "matches characters in order: 'mpv' matches 'memory-provider'"
+  test "case-insensitive fuzzy matching"
+  test "returns false when characters not in order"
+  test "returns false when characters missing"
+  test "empty query matches everything"
+  test "handles single character queries"
+end
+
+describe "fuzzy_search_timeline/2" do
+  test "finds events with fuzzy matches in message"
+  test "finds events with fuzzy matches in module"
+  test "finds events with fuzzy matches in level"
+  test "returns all events for empty query"
+  test "returns empty list when no fuzzy matches"
+  test "case-insensitive across all fields"
+end
+```
+
+**Implementation**: Update `lib/log_viewer/search.ex`
+- Add `fuzzy_match?/2` private function for fuzzy matching algorithm
+- Update `matches_query?/2` to use fuzzy matching instead of substring
+- Keep highlighting working with fuzzy matches
+- Maintain backward compatibility with existing tests
+
+**Fuzzy Match Algorithm**:
+```elixir
+@spec fuzzy_match?(String.t(), String.t()) :: boolean()
+defp fuzzy_match?(text, pattern) when is_binary(text) and is_binary(pattern) do
+  text_lower = String.downcase(text)
+  pattern_lower = String.downcase(pattern)
+
+  do_fuzzy_match?(text_lower, pattern_lower)
+end
+
+defp do_fuzzy_match?(_text, ""), do: true
+defp do_fuzzy_match?("", _pattern), do: false
+defp do_fuzzy_match?(text, <<char::utf8, rest::binary>>) do
+  case String.split(text, <<char::utf8>>, parts: 2) do
+    [_before, after_match] -> do_fuzzy_match?(after_match, rest)
+    [_] -> false
+  end
+end
+```
+
+**TDD Steps**:
+1. Write fuzzy_match?/2 tests - **RED PHASE**
+2. Run tests - should fail
+3. Implement fuzzy_match?/2 - **GREEN PHASE**
+4. Run tests - should pass
+5. Update matches_query?/2 to use fuzzy matching
+6. Run all existing tests - should still pass
+7. Test with Playwright - verify fuzzy search works in browser
+
+**Examples**:
+- `"mpv"` should match "**m**emory-**p**ro**v**ider"
+- `"stt"` should match "**s**torage-**t**ransac**t**ion"
+- `"z6mkr"` should match "did:key:**z**6**Mkr**HvEHMtM..."
+- `"err"` should match "**err**or", "st**o**r**a**g**e**-**err**or", etc.
 
 ---
 
