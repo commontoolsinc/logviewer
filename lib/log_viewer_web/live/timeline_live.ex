@@ -4,6 +4,7 @@ defmodule LogViewerWeb.TimelineLive do
   alias LogViewer.Parser
   alias LogViewer.Timeline
   alias LogViewer.EntityExtractor
+  alias LogViewerWeb.Components.EventCard
 
   @impl true
   def mount(_params, _session, socket) do
@@ -162,34 +163,7 @@ defmodule LogViewerWeb.TimelineLive do
           </h2>
           <div class="bg-white shadow rounded-lg overflow-hidden">
             <%= for event <- Enum.take(@timeline, 50) do %>
-              <div class="border-b border-gray-200 p-4 hover:bg-gray-50">
-                <div class="flex items-start justify-between">
-                  <div class="flex-1">
-                    <div class="flex items-center gap-2 mb-1">
-                      <span class={[
-                        "px-2 py-1 text-xs rounded",
-                        if(event.source == :client,
-                          do: "bg-blue-100 text-blue-800",
-                          else: "bg-green-100 text-green-800"
-                        )
-                      ]}>
-                        <%= event.source %>
-                      </span>
-                      <span class={[
-                        "px-2 py-1 text-xs rounded",
-                        level_color(event.level)
-                      ]}>
-                        <%= event.level %>
-                      </span>
-                      <span class="text-xs text-gray-500"><%= event.module %></span>
-                    </div>
-                    <p class="text-sm font-mono text-gray-700"><%= event.message %></p>
-                  </div>
-                  <span class="text-xs text-gray-400 ml-4">
-                    <%= format_timestamp(event.timestamp) %>
-                  </span>
-                </div>
-              </div>
+              <EventCard.event_card event={event} />
             <% end %>
           </div>
         </div>
@@ -234,20 +208,5 @@ defmodule LogViewerWeb.TimelineLive do
       <% end %>
     </div>
     """
-  end
-
-  defp level_color("error"), do: "bg-red-100 text-red-800"
-  defp level_color("ERROR"), do: "bg-red-100 text-red-800"
-  defp level_color("warn"), do: "bg-yellow-100 text-yellow-800"
-  defp level_color("WARN"), do: "bg-yellow-100 text-yellow-800"
-  defp level_color("info"), do: "bg-blue-100 text-blue-800"
-  defp level_color("INFO"), do: "bg-blue-100 text-blue-800"
-  defp level_color("debug"), do: "bg-gray-100 text-gray-800"
-  defp level_color("DEBUG"), do: "bg-gray-100 text-gray-800"
-  defp level_color(_), do: "bg-gray-100 text-gray-800"
-
-  defp format_timestamp(timestamp) when is_integer(timestamp) do
-    datetime = DateTime.from_unix!(timestamp, :millisecond)
-    Calendar.strftime(datetime, "%H:%M:%S.%f")
   end
 end
