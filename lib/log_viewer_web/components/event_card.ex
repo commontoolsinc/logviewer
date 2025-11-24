@@ -11,13 +11,26 @@ defmodule LogViewerWeb.Components.EventCard do
 
       <.event_card event={event} />
       <.event_card event={event} search_query="error" />
+      <.event_card event={event} search_query="error" is_current_match={true} id="event-0" />
   """
   attr :event, :map, required: true
   attr :search_query, :string, default: nil
+  attr :is_current_match, :boolean, default: false
+  attr :id, :string, default: nil
 
   def event_card(assigns) do
     ~H"""
-    <div class="border-b border-gray-200 p-4 hover:bg-gray-50">
+    <div
+      id={@id}
+      class={[
+        "border-b border-gray-200 p-4",
+        @is_current_match && "ring-2 ring-blue-500 bg-blue-50",
+        !@is_current_match && "hover:bg-gray-50"
+      ]}
+    >
+      <%= if @is_current_match do %>
+        <div class="text-lg font-bold text-blue-600 mb-2">⭐ CURRENT MATCH ⭐</div>
+      <% end %>
       <div class="flex items-center gap-2 mb-1">
         <span class="text-xs text-gray-500 font-mono">
           <%= format_timestamp(@event.timestamp) %>

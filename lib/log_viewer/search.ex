@@ -137,9 +137,9 @@ defmodule LogViewer.Search do
   end
 
   # Group consecutive positions together
-  @spec group_adjacent_positions(list(integer())) :: list({integer(), integer()})
-  defp group_adjacent_positions([]), do: []
-
+  # Note: This function is only called with non-empty lists due to the case
+  # statement in highlight_text that filters out empty positions
+  @spec group_adjacent_positions([integer(), ...]) :: list({integer(), integer()})
   defp group_adjacent_positions(positions) do
     sorted = Enum.sort(positions)
 

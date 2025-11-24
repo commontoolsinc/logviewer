@@ -177,4 +177,178 @@ defmodule LogViewerWeb.TimelineLiveTest do
       assert socket.assigns.timeline == []
     end
   end
+
+  describe "search match navigation" do
+    setup %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/")
+
+      # Upload server logs (has 7 events, 3 contain "r", "n", "r" pattern)
+      server_content = File.read!(@server_fixture_path)
+      file = file_input(view, "#upload-form", :log_files, [
+        %{name: "server.log", content: server_content}
+      ])
+      render_upload(file, "server.log")
+      render_change(view, "validate", %{})
+
+      %{view: view}
+    end
+
+    test "initializes with current_match_index at 0 when search has results", %{view: view} do
+      # When: Search for "rnr" (matches 3 events)
+      render_change(view, "search", %{"value" => "rnr"})
+
+      # Then: Should initialize at match 1
+      socket = :sys.get_state(view.pid).socket
+      assert socket.assigns.current_match_index == 0
+      assert socket.assigns.filtered_timeline |> length() == 3
+      assert render(view) =~ "Match 1 of 3"
+    end
+
+    test "next_match increments current index", %{view: view} do
+      # Setup: Search with results
+      render_change(view, "search", %{"value" => "rnr"})
+
+      # When: Click next button
+      render_click(view, "next_match")
+
+      # Then: Should show match 2 of 3
+      socket = :sys.get_state(view.pid).socket
+      assert socket.assigns.current_match_index == 1
+      assert render(view) =~ "Match 2 of 3"
+    end
+
+    test "next_match wraps from last to first", %{view: view} do
+      # Setup: At last match
+      render_change(view, "search", %{"value" => "rnr"})
+      render_click(view, "next_match")  # Move to 2
+      render_click(view, "next_match")  # Move to 3
+
+      # When: Click next from last match
+      render_click(view, "next_match")
+
+      # Then: Should wrap to match 1
+      socket = :sys.get_state(view.pid).socket
+      assert socket.assigns.current_match_index == 0
+      assert render(view) =~ "Match 1 of 3"
+    end
+
+    test "prev_match decrements current index", %{view: view} do
+      # Setup: At match 2
+      render_change(view, "search", %{"value" => "rnr"})
+      render_click(view, "next_match")  # Move to match 2
+
+      # When: Click prev button
+      render_click(view, "prev_match")
+
+      # Then: Should show match 1
+      socket = :sys.get_state(view.pid).socket
+      assert socket.assigns.current_match_index == 0
+      assert render(view) =~ "Match 1 of 3"
+    end
+
+    test "prev_match wraps from first to last", %{view: view} do
+      # Setup: At first match
+      render_change(view, "search", %{"value" => "rnr"})
+
+      # When: Click prev from first match
+      render_click(view, "prev_match")
+
+      # Then: Should wrap to last match
+      socket = :sys.get_state(view.pid).socket
+      assert socket.assigns.current_match_index == 2
+      assert render(view) =~ "Match 3 of 3"
+    end
+
+    test "resets to index 0 when search query changes", %{view: view} do
+      # Setup: At match 2
+      render_change(view, "search", %{"value" => "rnr"})
+      render_click(view, "next_match")
+
+      # When: Change search query
+      render_change(view, "search", %{"value" => "error"})
+
+      # Then: Should reset to match 1
+      socket = :sys.get_state(view.pid).socket
+      assert socket.assigns.current_match_index == 0
+    end
+
+    test "hides navigation controls when no search results", %{view: view} do
+      # When: Search for non-existent term (use characters that won't fuzzy match anything)
+      render_change(view, "search", %{"value" => "qqq"})
+
+      # Then: Should not show navigation
+      html = render(view)
+      refute html =~ "Match"
+      refute html =~ "↑"
+      refute html =~ "↓"
+    end
+
+    test "hides navigation controls when search is empty", %{view: view} do
+      # When: No search query
+      html = render(view)
+
+      # Then: Should not show navigation
+      refute html =~ "Match"
+      refute html =~ "↑"
+      refute html =~ "↓"
+    end
+
+    test "next_match pushes scroll_to_match event with correct ID", %{view: view} do
+      # Setup: Search with results
+      render_change(view, "search", %{"value" => "rnr"})
+
+      # When: Click next button (moving from index 0 to 1)
+      render_click(view, "next_match")
+
+      # Then: Should push scroll event with event-1 ID
+      assert_push_event(view, "scroll_to_match", %{id: "event-1"})
+    end
+
+    test "prev_match pushes scroll_to_match event with correct ID", %{view: view} do
+      # Setup: At match 2 (index 1)
+      render_change(view, "search", %{"value" => "rnr"})
+      render_click(view, "next_match")  # Move to match 2
+
+      # When: Click prev button (moving from index 1 to 0)
+      render_click(view, "prev_match")
+
+      # Then: Should push scroll event with event-0 ID
+      assert_push_event(view, "scroll_to_match", %{id: "event-0"})
+    end
+
+    test "next_match pushes correct event ID when wrapping from last to first", %{view: view} do
+      # Setup: At last match (index 2)
+      render_change(view, "search", %{"value" => "rnr"})
+      render_click(view, "next_match")  # Move to 2
+      render_click(view, "next_match")  # Move to 3 (index 2)
+
+      # When: Click next to wrap to first
+      render_click(view, "next_match")
+
+      # Then: Should push scroll event with event-0 ID
+      assert_push_event(view, "scroll_to_match", %{id: "event-0"})
+    end
+
+    test "prev_match pushes correct event ID when wrapping from first to last", %{view: view} do
+      # Setup: At first match (index 0)
+      render_change(view, "search", %{"value" => "rnr"})
+
+      # When: Click prev to wrap to last (index 2)
+      render_click(view, "prev_match")
+
+      # Then: Should push scroll event with event-2 ID
+      assert_push_event(view, "scroll_to_match", %{id: "event-2"})
+    end
+
+    test "next_match with no matches does not push scroll event", %{view: view} do
+      # Setup: Search with no results
+      render_change(view, "search", %{"value" => "qqq"})
+
+      # When: Click next button
+      render_click(view, "next_match")
+
+      # Then: Should push scroll event with event-0 (stays at 0)
+      assert_push_event(view, "scroll_to_match", %{id: "event-0"})
+    end
+  end
 end

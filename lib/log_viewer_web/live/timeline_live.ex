@@ -14,6 +14,8 @@ defmodule LogViewerWeb.TimelineLive do
      |> assign(:timeline, [])
      |> assign(:entity_index, nil)
      |> assign(:search_query, "")
+     |> assign(:current_match_index, 0)
+     |> assign(:filtered_timeline, [])
      |> allow_upload(:log_files,
        accept: ~w(.json .log),
        max_entries: 10,
@@ -35,7 +37,58 @@ defmodule LogViewerWeb.TimelineLive do
 
   @impl true
   def handle_event("search", %{"query" => query}, socket) do
-    {:noreply, assign(socket, :search_query, query)}
+    filtered = Search.search_timeline(socket.assigns.timeline, query)
+
+    {:noreply,
+     socket
+     |> assign(:search_query, query)
+     |> assign(:filtered_timeline, filtered)
+     |> assign(:current_match_index, 0)}
+  end
+
+  @impl true
+  def handle_event("search", %{"value" => value}, socket) do
+    filtered = Search.search_timeline(socket.assigns.timeline, value)
+
+    {:noreply,
+     socket
+     |> assign(:search_query, value)
+     |> assign(:filtered_timeline, filtered)
+     |> assign(:current_match_index, 0)}
+  end
+
+  @impl true
+  def handle_event("next_match", _params, socket) do
+    total_matches = length(socket.assigns.filtered_timeline)
+
+    new_index =
+      if total_matches > 0 do
+        rem(socket.assigns.current_match_index + 1, total_matches)
+      else
+        0
+      end
+
+    {:noreply,
+     socket
+     |> assign(:current_match_index, new_index)
+     |> push_event("scroll_to_match", %{id: "event-#{new_index}"})}
+  end
+
+  @impl true
+  def handle_event("prev_match", _params, socket) do
+    total_matches = length(socket.assigns.filtered_timeline)
+
+    new_index =
+      if total_matches > 0 do
+        rem(socket.assigns.current_match_index - 1 + total_matches, total_matches)
+      else
+        0
+      end
+
+    {:noreply,
+     socket
+     |> assign(:current_match_index, new_index)
+     |> push_event("scroll_to_match", %{id: "event-#{new_index}"})}
   end
 
   # Note: handle_progress is not a LiveView callback, it's passed to allow_upload
@@ -164,23 +217,20 @@ defmodule LogViewerWeb.TimelineLive do
       </div>
 
       <%= if length(@timeline) > 0 do %>
-        <%
-          filtered_timeline = Search.search_timeline(@timeline, @search_query)
-        %>
         <div class="mb-8">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-xl font-semibold">
               Timeline
               <%= if @search_query != "" do %>
-                - Showing <%= length(filtered_timeline) %> of <%= length(@timeline) %> events
+                - Showing <%= length(@filtered_timeline) %> of <%= length(@timeline) %> events
               <% else %>
                 (<%= length(@timeline) %> events)
               <% end %>
             </h2>
           </div>
 
-          <div class="mb-4">
-            <form phx-change="search" class="flex gap-2">
+          <div class="sticky top-0 bg-white border-b z-10 pb-4 mb-4">
+            <form phx-change="search" class="flex gap-2 items-center">
               <input
                 type="text"
                 name="query"
@@ -198,16 +248,55 @@ defmodule LogViewerWeb.TimelineLive do
                   Clear
                 </button>
               <% end %>
+              <%= if @search_query != "" and length(@filtered_timeline) > 0 do %>
+                <div class="flex items-center gap-2 ml-4">
+                  <span class="text-sm text-gray-600 whitespace-nowrap">
+                    Match <%= @current_match_index + 1 %> of <%= length(@filtered_timeline) %>
+                  </span>
+                  <button
+                    type="button"
+                    phx-click="prev_match"
+                    class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100"
+                    title="Previous match"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    phx-click="next_match"
+                    class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100"
+                    title="Next match"
+                  >
+                    ↓
+                  </button>
+                </div>
+              <% end %>
             </form>
           </div>
 
-          <div class="bg-white shadow rounded-lg overflow-hidden">
-            <%= for event <- Enum.take(filtered_timeline, 50) do %>
-              <EventCard.event_card event={event} search_query={@search_query} />
+          <div class="bg-white shadow rounded-lg pb-96">
+            <%= if @search_query != "" do %>
+              <%= for {event, index} <- Enum.with_index(Enum.take(@filtered_timeline, 50)) do %>
+                <EventCard.event_card
+                  event={event}
+                  search_query={@search_query}
+                  is_current_match={index == @current_match_index}
+                  id={"event-#{index}"}
+                />
+              <% end %>
+            <% else %>
+              <%= for event <- Enum.take(@timeline, 50) do %>
+                <EventCard.event_card event={event} search_query={@search_query} />
+              <% end %>
             <% end %>
-            <%= if length(filtered_timeline) > 50 do %>
+            <%= if @search_query != "" and length(@filtered_timeline) > 50 do %>
               <div class="p-4 text-center text-gray-500 bg-gray-50">
-                Showing first 50 of <%= length(filtered_timeline) %> matching events
+                Showing first 50 of <%= length(@filtered_timeline) %> matching events
+              </div>
+            <% end %>
+            <%= if @search_query == "" and length(@timeline) > 50 do %>
+              <div class="p-4 text-center text-gray-500 bg-gray-50">
+                Showing first 50 of <%= length(@timeline) %> events
               </div>
             <% end %>
           </div>
