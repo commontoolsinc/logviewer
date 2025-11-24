@@ -15,7 +15,7 @@ defmodule LogViewer.ParserTest do
       # Real production format uses exportedTimestamp
       assert export.exported_at == 1_763_755_382_416
       assert is_list(export.logs)
-      assert length(export.logs) == 4
+      assert length(export.logs) == 8
     end
 
     test "extracts timestamp, level, module, key, messages" do
@@ -38,12 +38,13 @@ defmodule LogViewer.ParserTest do
       json = File.read!(@client_fixture_path)
 
       assert {:ok, export} = Parser.parse_client_json(json)
-      assert length(export.logs) == 4
+      assert length(export.logs) == 8
 
-      # Check different log levels are preserved (real data has error and info)
+      # Check different log levels are preserved (real data has error, info, and debug)
       levels = Enum.map(export.logs, & &1.level)
       assert "info" in levels
       assert "error" in levels
+      assert "debug" in levels
     end
 
     test "returns error for invalid JSON" do

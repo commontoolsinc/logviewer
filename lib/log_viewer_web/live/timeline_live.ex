@@ -4,6 +4,7 @@ defmodule LogViewerWeb.TimelineLive do
   alias LogViewer.Parser
   alias LogViewer.Timeline
   alias LogViewer.EntityExtractor
+  alias LogViewer.Search
   alias LogViewerWeb.Components.EventCard
 
   @impl true
@@ -12,6 +13,7 @@ defmodule LogViewerWeb.TimelineLive do
      socket
      |> assign(:timeline, [])
      |> assign(:entity_index, nil)
+     |> assign(:search_query, "")
      |> allow_upload(:log_files,
        accept: ~w(.json .log),
        max_entries: 10,
@@ -29,6 +31,11 @@ defmodule LogViewerWeb.TimelineLive do
   @impl true
   def handle_event("cancel-upload", %{"ref" => ref}, socket) do
     {:noreply, cancel_upload(socket, :log_files, ref)}
+  end
+
+  @impl true
+  def handle_event("search", %{"query" => query}, socket) do
+    {:noreply, assign(socket, :search_query, query)}
   end
 
   # Note: handle_progress is not a LiveView callback, it's passed to allow_upload
@@ -157,13 +164,51 @@ defmodule LogViewerWeb.TimelineLive do
       </div>
 
       <%= if length(@timeline) > 0 do %>
+        <%
+          filtered_timeline = Search.search_timeline(@timeline, @search_query)
+        %>
         <div class="mb-8">
-          <h2 class="text-xl font-semibold mb-4">
-            Timeline (<%= length(@timeline) %> events)
-          </h2>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold">
+              Timeline
+              <%= if @search_query != "" do %>
+                - Showing <%= length(filtered_timeline) %> of <%= length(@timeline) %> events
+              <% else %>
+                (<%= length(@timeline) %> events)
+              <% end %>
+            </h2>
+          </div>
+
+          <div class="mb-4">
+            <form phx-change="search" class="flex gap-2">
+              <input
+                type="text"
+                name="query"
+                value={@search_query}
+                placeholder="Search logs..."
+                class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <%= if @search_query != "" do %>
+                <button
+                  type="button"
+                  phx-click="search"
+                  phx-value-query=""
+                  class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                >
+                  Clear
+                </button>
+              <% end %>
+            </form>
+          </div>
+
           <div class="bg-white shadow rounded-lg overflow-hidden">
-            <%= for event <- Enum.take(@timeline, 50) do %>
-              <EventCard.event_card event={event} />
+            <%= for event <- Enum.take(filtered_timeline, 50) do %>
+              <EventCard.event_card event={event} search_query={@search_query} />
+            <% end %>
+            <%= if length(filtered_timeline) > 50 do %>
+              <div class="p-4 text-center text-gray-500 bg-gray-50">
+                Showing first 50 of <%= length(filtered_timeline) %> matching events
+              </div>
             <% end %>
           </div>
         </div>

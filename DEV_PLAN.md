@@ -2,6 +2,22 @@
 
 This document outlines the development plan for the LogViewer Phoenix LiveView application, following Test-Driven Development (TDD) practices.
 
+## Current Status
+
+### ✅ Completed
+- **Phase 1: Core Data Layer** - All parsers, entity extraction, and timeline building complete
+- **Phase 2: LiveView UI** - File upload and basic rendering working
+- **Phase 3.1: Event Card Component** - Separate, testable component with full test coverage
+
+### 🚧 In Progress
+- **Phase 3.2-3.3: Additional UI Components** - Entity lists and modals not yet implemented
+- **Phase 4: Polish & Features** - Statistics and search features pending
+
+### 📋 Next Steps
+1. Implement fuzzy search with text highlighting
+2. Add entity list and detail components
+3. Build statistics dashboard
+
 ## TDD Workflow
 
 For each feature, we follow this cycle:
@@ -12,9 +28,11 @@ For each feature, we follow this cycle:
 4. **Run Test** - Verify it passes (green)
 5. **Refactor** - Clean up code while keeping tests green
 
-## Phase 1: Core Data Layer
+## Phase 1: Core Data Layer ✅ COMPLETE
 
-### 1.1 Parser Module - Client JSON
+All parsers, timeline building, and entity extraction fully implemented and tested.
+
+### 1.1 Parser Module - Client JSON ✅
 
 **Test File**: `test/log_viewer/parser_test.exs`
 
@@ -148,9 +166,11 @@ end
 
 ---
 
-## Phase 2: LiveView UI
+## Phase 2: LiveView UI ✅ MOSTLY COMPLETE
 
-### 2.1 Main LiveView Component
+File upload and basic rendering working. Search and filtering UI pending (see Phase 4.2).
+
+### 2.1 Main LiveView Component ✅
 
 **Test File**: `test/log_viewer_web/live/timeline_live_test.exs`
 
@@ -238,33 +258,26 @@ end
 
 ## Phase 3: Visualization Components
 
-### 3.1 Event Card Component
+### 3.1 Event Card Component ✅ COMPLETE
 
-**Test File**: `test/log_viewer_web/components/event_card_test.exs`
+**Status**: Implemented and tested with 12 passing tests
 
-**Test Cases**:
-```elixir
-describe "event_card/1" do
-  test "renders timestamp"
-  test "renders level with correct color (INFO=green, WARN=yellow, ERROR=red)"
-  test "renders module name"
-  test "renders source badge (client/server)"
-  test "renders event content"
-  test "highlights entity IDs in content"
-end
-```
+**Test File**: `test/log_viewer_web/components/event_card_test.exs` ✅
 
-**Implementation**: `lib/log_viewer_web/components/event_card.ex`
-- Define function component `event_card/1`
-- Use slots for flexibility
-- Apply TailwindCSS styling
-- Add entity ID highlighting logic
+**Completed Tests**:
+- ✅ Renders client and server log events with all fields
+- ✅ Formats timestamps correctly (HH:MM:SS.mmm)
+- ✅ Applies correct colors for all log levels (error, warn, info, debug)
+- ✅ Applies correct badge colors for client/server sources
+- ✅ Handles long messages
+- ✅ Accepts search_query attribute for future highlighting
 
-**TDD Steps**:
-1. Write component tests
-2. Run test - should fail
-3. Create component with styling
-4. Run test - should pass
+**Implementation**: `lib/log_viewer_web/components/event_card.ex` ✅
+- Function component with proper typespecs
+- Color-coded level badges (red=error, yellow=warn, blue=info, gray=debug)
+- Color-coded source badges (blue=client, green=server)
+- TailwindCSS styling with hover effects
+- Ready for search query highlighting
 
 ---
 
@@ -356,30 +369,82 @@ end
 
 ---
 
-### 4.2 Search & Filtering
+### 4.2 Fuzzy Search & Filtering
 
-**Test File**: `test/log_viewer/filter_test.exs`
+**Test File**: `test/log_viewer/search_test.exs`
 
 **Test Cases**:
 ```elixir
-describe "filter_events/2" do
-  test "filters by search text"
-  test "filters by level"
-  test "filters by source"
-  test "filters by module"
-  test "combines multiple filters (AND logic)"
+describe "search_timeline/2" do
+  test "performs fuzzy substring search across message, module, level"
+  test "search is case-insensitive"
+  test "empty query returns all events"
+  test "returns empty list when no matches"
+  test "orders results by relevance (exact > substring > fuzzy)"
+end
+
+describe "highlight_matches/2" do
+  test "wraps matched text in highlight spans"
+  test "handles multiple matches in same string"
+  test "case-insensitive matching"
+  test "returns original text when no matches"
 end
 ```
 
-**Implementation**: `lib/log_viewer/filter.ex`
-- Implement `filter_events/2`
-- Support multiple filter criteria
+**Implementation**:
+- `lib/log_viewer/search.ex` - Core search logic
+- Update `lib/log_viewer_web/components/event_card.ex` - Add highlight rendering
+- Update `lib/log_viewer_web/live/timeline_live.ex` - Add search input and event handler
+
+**Features**:
+- Real-time search as user types
+- Fuzzy matching (substring search)
+- Search across: message content, module name, log level
+- Highlight matching text in yellow background
+- Display match count ("Showing 15 of 1,234 events")
+- Clear button to reset search
+
+**LiveView UI Changes**:
+```elixir
+# Add to assigns
+assign(:search_query, "")
+assign(:filtered_timeline, [])
+
+# Add search event handler
+def handle_event("search", %{"query" => query}, socket) do
+  filtered = Search.search_timeline(socket.assigns.timeline, query)
+  {:noreply, assign(socket, search_query: query, filtered_timeline: filtered)}
+end
+```
+
+**Component Updates**:
+```elixir
+# event_card.ex - Add highlighting
+def event_card(assigns) do
+  ~H"""
+  <div>
+    <!-- existing badges -->
+    <p><%= highlight_text(@event.message, @search_query) %></p>
+  </div>
+  """
+end
+
+defp highlight_text(text, nil), do: text
+defp highlight_text(text, ""), do: text
+defp highlight_text(text, query) do
+  # Wrap matches in <mark class="bg-yellow-200">...</mark>
+end
+```
 
 **TDD Steps**:
-1. Write filter tests
+1. Write search tests
 2. Run test - should fail
-3. Implement filter logic
-4. Run test - should pass
+3. Implement fuzzy search logic
+4. Write highlight tests
+5. Implement highlight function
+6. Update LiveView for search input
+7. Update event_card to use highlighting
+8. Run all tests - should pass
 
 ---
 
@@ -387,9 +452,9 @@ end
 
 Create test fixtures in `test/fixtures/`:
 
-- `test/fixtures/client_logs.json` - Sample IndexedDB export
-- `test/fixtures/server_logs.txt` - Sample toolshed logs
-- `test/fixtures/mixed_timeline.json` - Pre-built timeline for faster tests
+- `test/fixtures/client_logs.json` - Sample IndexedDB export ✅
+- `test/fixtures/server_logs.log` - Sample toolshed logs ✅
+- `test/fixtures/mixed_timeline.json` - Pre-built timeline for faster tests (optional)
 
 **Sample Client JSON**:
 ```json

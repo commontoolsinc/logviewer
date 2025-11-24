@@ -4,8 +4,10 @@
   "exportedTimestamp": 1763755382416,
   "logs": [
     {
-      "key": "storage-error",
+      "timestamp": 1763753972077,
       "level": "error",
+      "module": "extended-storage-transaction",
+      "key": "storage-error",
       "messages": [
         "read Error",
         {},
@@ -18,18 +20,356 @@
             "/",
             "link@1"
           ],
-          "rootSchema": true,
           "space": "did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8",
-          "type": "application/json"
+          "type": "application/json",
+          "rootSchema": true
         },
         null
-      ],
-      "module": "extended-storage-transaction",
-      "timestamp": 1763753972077
+      ]
     },
     {
-      "key": "storage-error",
+      "timestamp": 1763754569569,
+      "level": "debug",
+      "module": "scheduler",
+      "key": "schedule",
+      "messages": [
+        "[CHANGE 1]",
+        "Address: did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8/",
+        "Before: undefined",
+        "After: {\"since\":54,\"transaction\":{\"cmd\":\"/memory/transact\",\"sub\":\"did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8\",\"args\":{\"changes\":{\"of:baedreigmsmh34uq4qfkaq56uwjg4ayg5do3p2npnaaeqt6etwcycbro2g4\":{\"application/json\":{\"ba4jcapbaal3gode2fm5fcsg6as2t2l6zhborv5dwi75tlxn24uejtxkf\":{\"is\":{\"value\":{\"$TYPE\":\"ba4jcbdhmmlv35pwbw5az576sbqchiwphyj66zaxnchaqkudevpq4bbtu\",\"resultRef\":{\"/\":{\"link@1\":{\"path\":[],\"id\":\"of:baedreic7dvjvssmh6b62azkrx6o4wmymbbwffgx3brpte2ykm3y6ukepzm\",\"schema\":{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"number\",\"default\":0},\"increment\":{},\"decrement\":{}},\"required\":[\"value\",\"increment\",\"decrement\"]},\"rootSchema\":{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"number\",\"default\":0},\"increment\":{},\"decrement\":{}},\"required\":[\"value\",\"increment\",\"decrement\"]}}}},\"internal\":{\"__#0stream\":{\"$stream\":true},\"increment\":{\"$stream\":true},\"decrement\":{\"$stream\":true},\"__#2stream\":{\"$stream\":true},\"$NAME\":\"Simple counter: 5\",\"__#4\":4,\"__#3\":\"5th\",\"__#1\":6},\"spell\":{\"/\":{\"link@1\":{\"id\":\"of:baedreig6m7rbk6troi36duxwujaue2odzvojgxkzz6akawb5xrn7tvy6gu\"}}},\"argument\":{\"value\":5}}}}}}}},\"iss\":\"did:key:z6MkiRxSt7GYjzN1uzRUncQy64gvXg4jkZQ5vCbaKj7nLfJG\",\"prf\":[],\"iat\":1763754490,\"exp\":1763758090}}"
+      ]
+    },
+    {
+      "timestamp": 1763754569569,
+      "level": "info",
+      "module": "shell.telemetry",
+      "key": "cell.update",
+      "messages": [
+        {
+          "type": "cell.update",
+          "change": {
+            "address": {
+              "id": "did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8",
+              "type": "application/commit+json",
+              "path": []
+            },
+            "after": {
+              "since": 54,
+              "transaction": {
+                "cmd": "/memory/transact",
+                "sub": "did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8",
+                "args": {
+                  "changes": {
+                    "of:baedreigmsmh34uq4qfkaq56uwjg4ayg5do3p2npnaaeqt6etwcycbro2g4": {
+                      "application/json": {
+                        "ba4jcapbaal3gode2fm5fcsg6as2t2l6zhborv5dwi75tlxn24uejtxkf": {
+                          "is": {
+                            "value": {
+                              "$TYPE": "ba4jcbdhmmlv35pwbw5az576sbqchiwphyj66zaxnchaqkudevpq4bbtu",
+                              "resultRef": {
+                                "/": {
+                                  "link@1": {
+                                    "path": [],
+                                    "id": "of:baedreic7dvjvssmh6b62azkrx6o4wmymbbwffgx3brpte2ykm3y6ukepzm",
+                                    "schema": {
+                                      "type": "object",
+                                      "properties": {
+                                        "value": {
+                                          "type": "number",
+                                          "default": 0
+                                        },
+                                        "increment": {},
+                                        "decrement": {}
+                                      },
+                                      "required": [
+                                        "value",
+                                        "increment",
+                                        "decrement"
+                                      ]
+                                    },
+                                    "rootSchema": {
+                                      "type": "object",
+                                      "properties": {
+                                        "value": {
+                                          "type": "number",
+                                          "default": 0
+                                        },
+                                        "increment": {},
+                                        "decrement": {}
+                                      },
+                                      "required": [
+                                        "value",
+                                        "increment",
+                                        "decrement"
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              "internal": {
+                                "__#0stream": {
+                                  "$stream": true
+                                },
+                                "increment": {
+                                  "$stream": true
+                                },
+                                "decrement": {
+                                  "$stream": true
+                                },
+                                "__#2stream": {
+                                  "$stream": true
+                                },
+                                "$NAME": "Simple counter: 5",
+                                "__#4": 4,
+                                "__#3": "5th",
+                                "__#1": 6
+                              },
+                              "spell": {
+                                "/": {
+                                  "link@1": {
+                                    "id": "of:baedreig6m7rbk6troi36duxwujaue2odzvojgxkzz6akawb5xrn7tvy6gu"
+                                  }
+                                }
+                              },
+                              "argument": {
+                                "value": 5
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "iss": "did:key:z6MkiRxSt7GYjzN1uzRUncQy64gvXg4jkZQ5vCbaKj7nLfJG",
+                "prf": [],
+                "iat": 1763754490,
+                "exp": 1763758090
+              }
+            }
+          },
+          "timeStamp": 611058
+        }
+      ]
+    },
+    {
+      "timestamp": 1763753972213,
+      "level": "debug",
+      "module": "scheduler",
+      "key": "schedule",
+      "messages": [
+        "[CHANGE 1]",
+        "Address: did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8/",
+        "Before: {\"since\":9,\"transaction\":{\"cmd\":\"/memory/transact\",\"sub\":\"did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8\",\"args\":{\"changes\":{\"of:baedreignttaojbas2uwwowqqpmifdallseidptxzssz7vifcnvs7fisv7a\":{\"application/json\":{\"ba4jcandhezjx2zpw4kjjkj4sf6irytwgas3xqb7accr3cjqce7yijj4z\":{\"is\":{\"value\":{\"allCharms\":{\"/\":{\"link@1\":{\"path\":[],\"id\":\"of:baedreiahv63wxwgaem4hzjkizl4qncfgvca7pj5cvdon7cukumfon3ioye\",\"space\":\"did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8\"}}},\"recentCharms\":[{\"/\":{\"link@1\":{\"path\":[],\"id\":\"of:baedreic7dvjvssmh6b62azkrx6o4wmymbbwffgx3brpte2ykm3y6ukepzm\",\"space\":\"did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8\"}}}]}}}}}}},\"iss\":\"did:key:z6MkmcNT8nApM6ncb55zBbbsxWxbai3PSuoMA9tEHLH4UGPk\",\"prf\":[],\"iat\":1763753960,\"exp\":1763757560}}",
+        "After: {\"since\":10,\"transaction\":{\"cmd\":\"/memory/transact\",\"sub\":\"did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8\",\"args\":{\"changes\":{\"of:baedreigmsmh34uq4qfkaq56uwjg4ayg5do3p2npnaaeqt6etwcycbro2g4\":{\"application/json\":{\"ba4jcbf5x6vvnm5oha4ed6azwxe7w4yuhvxhjvpdim223jm7lo3j4go7n\":{\"is\":{\"value\":{\"$TYPE\":\"ba4jcbdhmmlv35pwbw5az576sbqchiwphyj66zaxnchaqkudevpq4bbtu\",\"resultRef\":{\"/\":{\"link@1\":{\"path\":[],\"id\":\"of:baedreic7dvjvssmh6b62azkrx6o4wmymbbwffgx3brpte2ykm3y6ukepzm\",\"schema\":{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"number\",\"default\":0},\"increment\":{},\"decrement\":{}},\"required\":[\"value\",\"increment\",\"decrement\"]},\"rootSchema\":{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"number\",\"default\":0},\"increment\":{},\"decrement\":{}},\"required\":[\"value\",\"increment\",\"decrement\"]}}}},\"internal\":{\"__#0stream\":{\"$stream\":true},\"increment\":{\"$stream\":true},\"decrement\":{\"$stream\":true},\"__#2stream\":{\"$stream\":true},\"$NAME\":\"Simple counter: 0\",\"__#4\":-1,\"__#3\":\"0th\",\"__#1\":1},\"spell\":{\"/\":{\"link@1\":{\"id\":\"of:baedreig6m7rbk6troi36duxwujaue2odzvojgxkzz6akawb5xrn7tvy6gu\"}}},\"argument\":{\"value\":1}}}}}}}},\"iss\":\"did:key:z6MkmcNT8nApM6ncb55zBbbsxWxbai3PSuoMA9tEHLH4UGPk\",\"prf\":[],\"iat\":1763753970,\"exp\":1763757570}}"
+      ]
+    },
+    {
+      "timestamp": 1763753972213,
+      "level": "info",
+      "module": "shell.telemetry",
+      "key": "cell.update",
+      "messages": [
+        {
+          "type": "cell.update",
+          "change": {
+            "address": {
+              "id": "did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8",
+              "type": "application/commit+json",
+              "path": []
+            },
+            "before": {
+              "since": 9,
+              "transaction": {
+                "cmd": "/memory/transact",
+                "sub": "did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8",
+                "args": {
+                  "changes": {
+                    "of:baedreignttaojbas2uwwowqqpmifdallseidptxzssz7vifcnvs7fisv7a": {
+                      "application/json": {
+                        "ba4jcandhezjx2zpw4kjjkj4sf6irytwgas3xqb7accr3cjqce7yijj4z": {
+                          "is": {
+                            "value": {
+                              "allCharms": {
+                                "/": {
+                                  "link@1": {
+                                    "path": [],
+                                    "id": "of:baedreiahv63wxwgaem4hzjkizl4qncfgvca7pj5cvdon7cukumfon3ioye",
+                                    "space": "did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8"
+                                  }
+                                }
+                              },
+                              "recentCharms": [
+                                {
+                                  "/": {
+                                    "link@1": {
+                                      "path": [],
+                                      "id": "of:baedreic7dvjvssmh6b62azkrx6o4wmymbbwffgx3brpte2ykm3y6ukepzm",
+                                      "space": "did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "iss": "did:key:z6MkmcNT8nApM6ncb55zBbbsxWxbai3PSuoMA9tEHLH4UGPk",
+                "prf": [],
+                "iat": 1763753960,
+                "exp": 1763757560
+              }
+            },
+            "after": {
+              "since": 10,
+              "transaction": {
+                "cmd": "/memory/transact",
+                "sub": "did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8",
+                "args": {
+                  "changes": {
+                    "of:baedreigmsmh34uq4qfkaq56uwjg4ayg5do3p2npnaaeqt6etwcycbro2g4": {
+                      "application/json": {
+                        "ba4jcbf5x6vvnm5oha4ed6azwxe7w4yuhvxhjvpdim223jm7lo3j4go7n": {
+                          "is": {
+                            "value": {
+                              "$TYPE": "ba4jcbdhmmlv35pwbw5az576sbqchiwphyj66zaxnchaqkudevpq4bbtu",
+                              "resultRef": {
+                                "/": {
+                                  "link@1": {
+                                    "path": [],
+                                    "id": "of:baedreic7dvjvssmh6b62azkrx6o4wmymbbwffgx3brpte2ykm3y6ukepzm",
+                                    "schema": {
+                                      "type": "object",
+                                      "properties": {
+                                        "value": {
+                                          "type": "number",
+                                          "default": 0
+                                        },
+                                        "increment": {},
+                                        "decrement": {}
+                                      },
+                                      "required": [
+                                        "value",
+                                        "increment",
+                                        "decrement"
+                                      ]
+                                    },
+                                    "rootSchema": {
+                                      "type": "object",
+                                      "properties": {
+                                        "value": {
+                                          "type": "number",
+                                          "default": 0
+                                        },
+                                        "increment": {},
+                                        "decrement": {}
+                                      },
+                                      "required": [
+                                        "value",
+                                        "increment",
+                                        "decrement"
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              "internal": {
+                                "__#0stream": {
+                                  "$stream": true
+                                },
+                                "increment": {
+                                  "$stream": true
+                                },
+                                "decrement": {
+                                  "$stream": true
+                                },
+                                "__#2stream": {
+                                  "$stream": true
+                                },
+                                "$NAME": "Simple counter: 0",
+                                "__#4": -1,
+                                "__#3": "0th",
+                                "__#1": 1
+                              },
+                              "spell": {
+                                "/": {
+                                  "link@1": {
+                                    "id": "of:baedreig6m7rbk6troi36duxwujaue2odzvojgxkzz6akawb5xrn7tvy6gu"
+                                  }
+                                }
+                              },
+                              "argument": {
+                                "value": 1
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "iss": "did:key:z6MkmcNT8nApM6ncb55zBbbsxWxbai3PSuoMA9tEHLH4UGPk",
+                "prf": [],
+                "iat": 1763753970,
+                "exp": 1763757570
+              }
+            }
+          },
+          "timeStamp": 13702
+        }
+      ]
+    },
+    {
+      "timestamp": 1763754026687,
+      "level": "debug",
+      "module": "scheduler",
+      "key": "schedule",
+      "messages": [
+        "[CHANGE 1]",
+        "Address: did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8/",
+        "Before: {\"value\":{\"did:key:z6Mkp64R4wpVsuRmymnUAxxDM7UonHVkZkc45FhaJBqwnuuK\":\"OWNER\",\"*\":\"WRITE\"}}",
+        "After: {\"value\":{\"did:key:z6MkmcNT8nApM6ncb55zBbbsxWxbai3PSuoMA9tEHLH4UGPk\":\"OWNER\",\"*\":\"WRITE\"}}"
+      ]
+    },
+    {
+      "timestamp": 1763754026687,
+      "level": "info",
+      "module": "shell.telemetry",
+      "key": "cell.update",
+      "messages": [
+        {
+          "type": "cell.update",
+          "change": {
+            "address": {
+              "id": "did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8",
+              "type": "application/json",
+              "path": []
+            },
+            "before": {
+              "value": {
+                "did:key:z6Mkp64R4wpVsuRmymnUAxxDM7UonHVkZkc45FhaJBqwnuuK": "OWNER",
+                "*": "WRITE"
+              }
+            },
+            "after": {
+              "value": {
+                "did:key:z6MkmcNT8nApM6ncb55zBbbsxWxbai3PSuoMA9tEHLH4UGPk": "OWNER",
+                "*": "WRITE"
+              }
+            }
+          },
+          "timeStamp": 68176
+        }
+      ]
+    },
+    {
+      "timestamp": 1763753972077,
       "level": "error",
+      "module": "extended-storage-transaction",
+      "key": "storage-error",
       "messages": [
         "read Error",
         {},
@@ -42,83 +382,19 @@
             "$alias",
             "path"
           ],
-          "rootSchema": true,
           "space": "did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8",
-          "type": "application/json"
+          "type": "application/json",
+          "rootSchema": true
         },
         null
-      ],
-      "module": "extended-storage-transaction",
-      "timestamp": 1763753972077
-    },
-    {
-      "key": "storage-error",
-      "level": "error",
-      "messages": [
-        "read Error",
-        {},
-        {
-          "id": "of:baedreigmsmh34uq4qfkaq56uwjg4ayg5do3p2npnaaeqt6etwcycbro2g4",
-          "path": [
-            "value",
-            "internal",
-            "__#2stream",
-            "cell",
-            "/"
-          ],
-          "rootSchema": true,
-          "space": "did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8",
-          "type": "application/json"
-        },
-        null
-      ],
-      "module": "extended-storage-transaction",
-      "timestamp": 1763753972077
-    },
-    {
-      "key": "storage",
-      "level": "info",
-      "messages": [
-        "readOrThrow, initial Success",
-        {
-          "address": {
-            "id": "of:baedreigmsmh34uq4qfkaq56uwjg4ayg5do3p2npnaaeqt6etwcycbro2g4",
-            "path": [
-              "value",
-              "internal",
-              "__#2stream"
-            ],
-            "rootSchema": true,
-            "type": "application/json"
-          },
-          "value": {
-            "$stream": true
-          }
-        },
-        {
-          "id": "of:baedreigmsmh34uq4qfkaq56uwjg4ayg5do3p2npnaaeqt6etwcycbro2g4",
-          "path": [
-            "value",
-            "internal",
-            "__#2stream"
-          ],
-          "rootSchema": true,
-          "space": "did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8",
-          "type": "application/json"
-        },
-        {
-          "meta": {}
-        }
-      ],
-      "module": "extended-storage-transaction",
-      "timestamp": 1763753972078
+      ]
     }
   ],
   "sessionInfo": {
-    "platform": "Linux x86_64",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:144.0) Gecko/20100101 Firefox/144.0",
     "url": "http://127.0.0.1:5173/ellyse/baedreic7dvjvssmh6b62azkrx6o4wmymbbwffgx3brpte2ykm3y6ukepzm",
-    "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:144.0) Gecko/20100101 Firefox/144.0"
+    "platform": "Linux x86_64"
   },
   "storeName": "entries",
-  "totalEntries": 4
+  "totalEntries": 8
 }

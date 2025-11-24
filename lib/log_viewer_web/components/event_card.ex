@@ -1,6 +1,9 @@
 defmodule LogViewerWeb.Components.EventCard do
   use Phoenix.Component
 
+  alias LogViewer.Search
+  alias Phoenix.HTML
+
   @doc """
   Renders a single log event card.
 
@@ -15,29 +18,27 @@ defmodule LogViewerWeb.Components.EventCard do
   def event_card(assigns) do
     ~H"""
     <div class="border-b border-gray-200 p-4 hover:bg-gray-50">
-      <div class="flex items-start justify-between">
-        <div class="flex-1">
-          <div class="flex items-center gap-2 mb-1">
-            <span class={[
-              "px-2 py-1 text-xs rounded",
-              source_badge_color(@event.source)
-            ]}>
-              <%= @event.source %>
-            </span>
-            <span class={[
-              "px-2 py-1 text-xs rounded",
-              level_badge_color(@event.level)
-            ]}>
-              <%= @event.level %>
-            </span>
-            <span class="text-xs text-gray-500"><%= @event.module %></span>
-          </div>
-          <p class="text-sm font-mono text-gray-700"><%= @event.message %></p>
-        </div>
-        <span class="text-xs text-gray-400 ml-4">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="text-xs text-gray-500 font-mono">
           <%= format_timestamp(@event.timestamp) %>
         </span>
+        <span class={[
+          "px-2 py-1 text-xs rounded",
+          source_badge_color(@event.source)
+        ]}>
+          <%= @event.source %>
+        </span>
+        <span class={[
+          "px-2 py-1 text-xs rounded",
+          level_badge_color(@event.level)
+        ]}>
+          <%= @event.level %>
+        </span>
+        <span class="text-xs text-gray-500"><%= @event.module %></span>
       </div>
+      <p class="text-sm font-mono text-gray-700">
+        <%= HTML.raw(Search.highlight_text(@event.message, @search_query)) %>
+      </p>
     </div>
     """
   end

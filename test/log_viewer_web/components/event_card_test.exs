@@ -187,9 +187,10 @@ defmodule LogViewerWeb.Components.EventCardTest do
         raw_entry: %{}
       }
 
-      # Should not raise error when search_query is provided
+      # Should highlight matching text when search_query is provided
       html = render_component(&EventCard.event_card/1, event: event, search_query: "test")
-      assert html =~ "test message"
+      assert html =~ ~s(<mark class="bg-yellow-200">test</mark>)
+      assert html =~ "message"
     end
   end
 end
