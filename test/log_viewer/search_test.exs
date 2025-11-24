@@ -130,9 +130,11 @@ defmodule LogViewer.SearchTest do
 
       result = Search.highlight_text(text, query)
 
-      # Should have two mark tags
-      mark_count = length(String.split(result, "<mark")) - 1
-      assert mark_count == 2
+      # Fuzzy matching finds first occurrence and highlights all matching characters
+      # Should have one highlighted segment for "storage"
+      assert result =~ ~s(<mark class="bg-yellow-200">storage</mark>)
+      # The first "storage" should be highlighted
+      assert result =~ "reading <mark"
     end
 
     test "case-insensitive matching" do
@@ -185,6 +187,69 @@ defmodule LogViewer.SearchTest do
 
       assert result =~ ~s(<mark class="bg-yellow-200">Storage</mark>)
       assert result =~ "&amp;"
+    end
+
+    test "fuzzy highlights non-consecutive characters" do
+      text = "runner"
+      query = "rnr"
+
+      result = Search.highlight_text(text, query)
+
+      # Should highlight: r, n, r (fuzzy match finds first occurrence of each)
+      assert result =~ ~s(<mark class="bg-yellow-200">r</mark>)
+      assert result =~ ~s(n</mark>)
+      # The pattern matches: r at 0, n at 2, r at 5
+      assert result == ~s(<mark class="bg-yellow-200">r</mark>u<mark class="bg-yellow-200">n</mark>ne<mark class="bg-yellow-200">r</mark>)
+    end
+
+    test "fuzzy highlights with adjacent characters combined" do
+      text = "memory-provider"
+      query = "mpv"
+
+      result = Search.highlight_text(text, query)
+
+      # Should highlight: m, p, v
+      assert result == ~s(<mark class="bg-yellow-200">m</mark>emory-<mark class="bg-yellow-200">p</mark>ro<mark class="bg-yellow-200">v</mark>ider)
+    end
+
+    test "fuzzy highlights scattered characters" do
+      text = "storage-transaction"
+      query = "stt"
+
+      result = Search.highlight_text(text, query)
+
+      # Should highlight: s, t (from storage), t (from transaction)
+      assert result == ~s(<mark class="bg-yellow-200">st</mark>orage-<mark class="bg-yellow-200">t</mark>ransaction)
+    end
+
+    test "fuzzy highlighting is case-insensitive" do
+      text = "StorageTransaction"
+      query = "stt"
+
+      result = Search.highlight_text(text, query)
+
+      # Should preserve original case
+      assert result == ~s(<mark class="bg-yellow-200">St</mark>orage<mark class="bg-yellow-200">T</mark>ransaction)
+    end
+
+    test "consecutive substring still works with fuzzy" do
+      text = "error message"
+      query = "error"
+
+      result = Search.highlight_text(text, query)
+
+      # Should highlight as one block since they're consecutive
+      assert result =~ ~s(<mark class="bg-yellow-200">error</mark>)
+    end
+
+    test "fuzzy highlighting with no match returns original" do
+      text = "runner"
+      query = "xyz"
+
+      result = Search.highlight_text(text, query)
+
+      assert result == text
+      refute result =~ "<mark"
     end
   end
 
