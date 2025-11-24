@@ -44,7 +44,7 @@ defmodule LogViewer.SearchTest do
       %{events: events}
     end
 
-    test "performs substring search in message", %{events: events} do
+    test "performs fuzzy search in message", %{events: events} do
       results = Search.search_timeline(events, "storage")
 
       assert length(results) == 2
@@ -52,18 +52,20 @@ defmodule LogViewer.SearchTest do
       assert Enum.any?(results, &(&1.module == "storage"))
     end
 
-    test "performs substring search in module", %{events: events} do
+    test "performs fuzzy search in module", %{events: events} do
       results = Search.search_timeline(events, "memory")
 
-      assert length(results) == 1
-      assert List.first(results).module == "memory-provider"
+      # Fuzzy search may find more matches than substring
+      assert length(results) >= 1
+      assert Enum.any?(results, &(&1.module == "memory-provider"))
     end
 
-    test "performs substring search in level", %{events: events} do
+    test "performs fuzzy search in level", %{events: events} do
       results = Search.search_timeline(events, "error")
 
-      assert length(results) == 1
-      assert List.first(results).level == "error"
+      # Fuzzy search may find more matches (e.g., "Server" contains e,r,r,e,r)
+      assert length(results) >= 1
+      assert Enum.any?(results, &(&1.level == "error"))
     end
 
     test "search is case-insensitive", %{events: events} do
@@ -183,6 +185,52 @@ defmodule LogViewer.SearchTest do
 
       assert result =~ ~s(<mark class="bg-yellow-200">Storage</mark>)
       assert result =~ "&amp;"
+    end
+  end
+
+  describe "fuzzy_match?/2" do
+    test "matches characters in order: 'kep' matches 'kefoijsdofijpm'" do
+      assert Search.fuzzy_match?("kefoijsdofijpm", "kep")
+    end
+
+    test "matches characters in order: 'stt' matches 'storage-transaction'" do
+      assert Search.fuzzy_match?("storage-transaction", "stt")
+    end
+
+    test "matches characters in order: 'mpv' matches 'memory-provider'" do
+      assert Search.fuzzy_match?("memory-provider", "mpv")
+    end
+
+    test "case-insensitive fuzzy matching" do
+      assert Search.fuzzy_match?("StorageTransaction", "stt")
+      assert Search.fuzzy_match?("storage-transaction", "STT")
+      assert Search.fuzzy_match?("MEMORY-PROVIDER", "mpv")
+    end
+
+    test "returns false when characters not in order" do
+      refute Search.fuzzy_match?("storage", "tso")
+      refute Search.fuzzy_match?("memory", "yem")
+    end
+
+    test "returns false when characters missing" do
+      refute Search.fuzzy_match?("storage", "xyz")
+      refute Search.fuzzy_match?("memory", "abc")
+    end
+
+    test "empty query matches everything" do
+      assert Search.fuzzy_match?("any text here", "")
+      assert Search.fuzzy_match?("", "")
+    end
+
+    test "handles single character queries" do
+      assert Search.fuzzy_match?("storage", "s")
+      assert Search.fuzzy_match?("memory", "m")
+      refute Search.fuzzy_match?("storage", "x")
+    end
+
+    test "consecutive characters still work" do
+      assert Search.fuzzy_match?("storage error", "storage")
+      assert Search.fuzzy_match?("memory-provider", "memory")
     end
   end
 end
