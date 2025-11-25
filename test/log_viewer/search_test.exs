@@ -110,6 +110,33 @@ defmodule LogViewer.SearchTest do
 
       assert length(results) == 2
     end
+
+    test "should not match across newlines in multiline log messages" do
+      # This test demonstrates the bug where matches_query? bypasses fuzzy_match?'s
+      # newline-splitting logic by calling do_fuzzy_match? directly
+      multiline_event = %LogEvent{
+        timestamp: 5_000_000,
+        level: "info",
+        module: "memory-provider",
+        message: """
+        First line with ABC
+        Second line with DEF
+        Third line with GHI
+        """,
+        source: :server,
+        raw_entry: %{}
+      }
+
+      events = [multiline_event]
+
+      # "adg" matches across lines: A from line 1, D from line 2, G from line 3
+      # This SHOULD return no results (single-line matching should prevent cross-line matches)
+      # But currently FAILS because matches_query? calls do_fuzzy_match? directly
+      results = Search.search_timeline(events, "adg")
+
+      # This assertion will FAIL, exposing the bug
+      assert results == [], "Expected no matches for cross-line fuzzy pattern 'adg', but got #{length(results)} matches"
+    end
   end
 
   describe "highlight_text/2" do

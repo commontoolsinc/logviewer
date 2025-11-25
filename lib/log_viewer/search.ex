@@ -23,6 +23,16 @@ defmodule LogViewer.Search do
   @spec search_timeline(list(LogEvent.t()), String.t() | nil) :: list(LogEvent.t())
   def search_timeline(events, query)
       when is_list(events) and (is_binary(query) or is_nil(query)) do
+    require Logger
+    Logger.info("search_timeline called: query=#{inspect(query)}, event_count=#{length(events)}")
+
+    if length(events) > 0 do
+      first_event = List.first(events)
+      msg_preview = String.slice(first_event.message, 0, 100)
+      num_lines = length(String.split(first_event.message, "\n"))
+      Logger.info("First event: module=#{first_event.module}, msg_lines=#{num_lines}, preview=#{msg_preview}")
+    end
+
     cond do
       is_nil(query) or query == "" ->
         events
@@ -30,9 +40,12 @@ defmodule LogViewer.Search do
       true ->
         query_lower = String.downcase(query)
 
-        Enum.filter(events, fn event ->
+        result = Enum.filter(events, fn event ->
           matches_query?(event, query_lower)
         end)
+
+        Logger.info("search_timeline result: #{length(result)} matches found")
+        result
     end
   end
 
@@ -65,9 +78,15 @@ defmodule LogViewer.Search do
     pattern_lower = String.downcase(pattern)
 
     # Split by newlines and check if pattern matches any single line
-    text_lower
-    |> String.split("\n")
-    |> Enum.any?(fn line -> do_fuzzy_match?(line, pattern_lower) end)
+    lines = String.split(text_lower, "\n")
+
+    # Debug logging
+    require Logger
+    Logger.debug("fuzzy_match? pattern=#{pattern}, text_length=#{String.length(text)}, num_lines=#{length(lines)}")
+
+    result = Enum.any?(lines, fn line -> do_fuzzy_match?(line, pattern_lower) end)
+    Logger.debug("fuzzy_match? result=#{result}")
+    result
   end
 
   @doc """
@@ -201,13 +220,18 @@ defmodule LogViewer.Search do
   # Private helper to check if an event matches the query using fuzzy matching
   @spec matches_query?(LogEvent.t(), String.t()) :: boolean()
   defp matches_query?(event, query_lower) when is_binary(query_lower) do
-    message_lower = String.downcase(event.message)
-    module_lower = String.downcase(event.module)
-    level_lower = String.downcase(event.level)
+    require Logger
+    Logger.info("matches_query? called: query=#{query_lower}, module=#{event.module}")
 
-    do_fuzzy_match?(message_lower, query_lower) or
-      do_fuzzy_match?(module_lower, query_lower) or
-      do_fuzzy_match?(level_lower, query_lower)
+    Logger.info("matches_query? calling fuzzy_match? on message (#{String.length(event.message)} chars)")
+
+    # Use fuzzy_match? which handles newline splitting, not do_fuzzy_match?
+    result = fuzzy_match?(event.message, query_lower) or
+      fuzzy_match?(event.module, query_lower) or
+      fuzzy_match?(event.level, query_lower)
+
+    Logger.info("matches_query? result=#{result}")
+    result
   end
 
   # Recursive fuzzy matching implementation
