@@ -42,6 +42,9 @@ defmodule LogViewer.Search do
   Characters in the pattern must appear in the same order in the text, but don't
   need to be consecutive. Matching is case-insensitive.
 
+  For multiline text, the pattern must match within a single line (does not match
+  across newlines).
+
   ## Examples
 
       iex> Search.fuzzy_match?("memory-provider", "mpv")
@@ -52,13 +55,19 @@ defmodule LogViewer.Search do
 
       iex> Search.fuzzy_match?("storage", "tso")
       false
+
+      iex> Search.fuzzy_match?("line1\\nline2", "l1l2")
+      false
   """
   @spec fuzzy_match?(String.t(), String.t()) :: boolean()
   def fuzzy_match?(text, pattern) when is_binary(text) and is_binary(pattern) do
     text_lower = String.downcase(text)
     pattern_lower = String.downcase(pattern)
 
-    do_fuzzy_match?(text_lower, pattern_lower)
+    # Split by newlines and check if pattern matches any single line
+    text_lower
+    |> String.split("\n")
+    |> Enum.any?(fn line -> do_fuzzy_match?(line, pattern_lower) end)
   end
 
   @doc """

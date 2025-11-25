@@ -297,5 +297,31 @@ defmodule LogViewer.SearchTest do
       assert Search.fuzzy_match?("storage error", "storage")
       assert Search.fuzzy_match?("memory-provider", "memory")
     end
+
+    test "should not match across newlines in multiline messages" do
+      # Multiline stack trace - characters are on different lines
+      multiline_message = """
+      First line with ABC
+      Second line with DEF
+      Third line with GHI
+      """
+
+      # "adg" would match across lines: A from line 1, D from line 2, G from line 3
+      # but these are on different lines, so it should NOT match
+      refute Search.fuzzy_match?(multiline_message, "adg")
+
+      # "beh" would match across lines: B from line 1, E from line 2, H from line 3
+      # but these are on different lines, so it should NOT match
+      refute Search.fuzzy_match?(multiline_message, "beh")
+
+      # However, "abc" on the same first line SHOULD still match
+      assert Search.fuzzy_match?(multiline_message, "abc")
+
+      # And "def" on the same line SHOULD still match
+      assert Search.fuzzy_match?(multiline_message, "def")
+
+      # "ghi" on the third line SHOULD also match
+      assert Search.fuzzy_match?(multiline_message, "ghi")
+    end
   end
 end
