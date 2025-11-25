@@ -16,6 +16,7 @@ defmodule LogViewerWeb.TimelineLive do
      |> assign(:search_query, "")
      |> assign(:current_match_index, 0)
      |> assign(:filtered_timeline, [])
+     |> assign(:tracked_ids, MapSet.new())
      |> allow_upload(:log_files,
        accept: ~w(.json .log),
        max_entries: 10,
@@ -89,6 +90,20 @@ defmodule LogViewerWeb.TimelineLive do
      socket
      |> assign(:current_match_index, new_index)
      |> push_event("scroll_to_match", %{id: "event-#{new_index}"})}
+  end
+
+  @impl true
+  def handle_event("toggle_track", %{"id" => id}, socket) when is_binary(id) do
+    tracked_ids = socket.assigns.tracked_ids
+
+    new_tracked_ids =
+      if MapSet.member?(tracked_ids, id) do
+        MapSet.delete(tracked_ids, id)
+      else
+        MapSet.put(tracked_ids, id)
+      end
+
+    {:noreply, assign(socket, :tracked_ids, new_tracked_ids)}
   end
 
   # Note: handle_progress is not a LiveView callback, it's passed to allow_upload
@@ -180,8 +195,32 @@ defmodule LogViewerWeb.TimelineLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="container mx-auto p-8">
-      <h1 class="text-3xl font-bold mb-8">Log Viewer</h1>
+    <div class="flex">
+      <%= if MapSet.size(@tracked_ids) > 0 do %>
+        <div class="w-64 bg-gray-50 p-4 border-r min-h-screen">
+          <h2 class="text-lg font-semibold mb-4">Tracked IDs (<%= MapSet.size(@tracked_ids) %>)</h2>
+          <div class="space-y-2">
+            <%= for id <- Enum.sort(MapSet.to_list(@tracked_ids)) do %>
+              <div class="bg-white p-2 rounded shadow-sm group hover:bg-gray-100">
+                <div class="flex items-start justify-between gap-2">
+                  <span class="text-xs font-mono text-gray-700 break-all flex-1"><%= id %></span>
+                  <button
+                    phx-click="toggle_track"
+                    phx-value-id={id}
+                    class="text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                    title="Remove from tracking"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <div class="flex-1 container mx-auto p-8">
+        <h1 class="text-3xl font-bold mb-8">Log Viewer</h1>
 
       <div class="mb-8">
         <h2 class="text-xl font-semibold mb-4">Upload Log Files</h2>
@@ -340,6 +379,7 @@ defmodule LogViewerWeb.TimelineLive do
           </div>
         </div>
       <% end %>
+      </div>
     </div>
     """
   end

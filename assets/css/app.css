@@ -103,3 +103,8 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
+
+/* Clickable ID styling - make IDs look like links */
+.clickable-id {
+  @apply text-blue-600 underline cursor-pointer hover:text-blue-800;
+}

@@ -2,6 +2,7 @@ defmodule LogViewerWeb.Components.EventCard do
   use Phoenix.Component
 
   alias LogViewer.Search
+  alias LogViewer.IDTracker
   alias Phoenix.HTML
 
   @doc """
@@ -49,9 +50,17 @@ defmodule LogViewerWeb.Components.EventCard do
         </span>
         <span class="text-xs text-gray-500"><%= @event.module %></span>
       </div>
-      <p class="text-sm font-mono text-gray-700 whitespace-pre-wrap"><%= HTML.raw(Search.highlight_text(@event.message, @search_query)) %></p>
+      <p class="text-sm font-mono text-gray-700 whitespace-pre-wrap"><%= HTML.raw(format_message(@event.message, @search_query)) %></p>
     </div>
     """
+  end
+
+  @spec format_message(String.t(), String.t() | nil) :: String.t()
+  defp format_message(message, search_query) do
+    # Apply clickable IDs first, then search highlighting
+    message
+    |> IDTracker.make_ids_clickable()
+    |> Search.highlight_text(search_query)
   end
 
   defp source_badge_color(:client), do: "bg-blue-100 text-blue-800"
