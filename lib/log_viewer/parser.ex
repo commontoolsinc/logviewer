@@ -147,9 +147,14 @@ defmodule LogViewer.Parser do
   end
 
   @doc """
-  Parses server logs in toolshed text format.
+  Parses server logs in multiple formats.
 
-  Format: [LEVEL][module::HH:MM:SS.mmm] message
+  Supports two formats:
+  1. Toolshed: [LEVEL][module::HH:MM:SS.mmm] message
+  2. Pino: [HH:MM:SS.mmm] LEVEL (pid): message
+
+  Multi-line messages are supported - lines that don't match either pattern
+  are appended to the previous log entry's message.
 
   ## Examples
 
@@ -164,18 +169,39 @@ defmodule LogViewer.Parser do
   """
   @spec parse_server_logs(String.t()) :: list(ServerLogEntry.t())
   def parse_server_logs(text) when is_binary(text) do
-    # Pattern: [LEVEL][module::HH:MM:SS.mmm] message
-    pattern = ~r/^\[([A-Z]+)\]\[([^:]+)::(\d{2}):(\d{2}):(\d{2})\.(\d{3})\]\s*(.*)$/
+    # Toolshed pattern: [LEVEL][module::HH:MM:SS.mmm] message
+    toolshed_pattern = ~r/^\[([A-Z]+)\]\[([^:]+)::(\d{2}):(\d{2}):(\d{2})\.(\d{3})\]\s*(.*)$/
+    # Pino pattern: [HH:MM:SS.mmm] LEVEL (pid): message
+    pino_pattern = ~r/^\[(\d{2}):(\d{2}):(\d{2})\.(\d{3})\]\s+([A-Z]+)\s+\(\d+\):\s*(.*)$/
 
     text
     |> String.split("\n", trim: true)
-    |> Enum.map(&parse_server_log_line(&1, pattern))
-    |> Enum.reject(&is_nil/1)
+    |> Enum.reduce([], fn line, acc ->
+      case parse_server_log_line(line, toolshed_pattern, pino_pattern) do
+        %ServerLogEntry{} = entry ->
+          # New log entry - add to accumulator
+          [entry | acc]
+
+        nil ->
+          # Continuation line - append to previous entry if one exists
+          case acc do
+            [prev | rest] ->
+              updated = %{prev | message: prev.message <> "\n" <> line}
+              [updated | rest]
+
+            [] ->
+              # No previous entry, skip this line
+              acc
+          end
+      end
+    end)
+    |> Enum.reverse()
   end
 
-  @spec parse_server_log_line(String.t(), Regex.t()) :: ServerLogEntry.t() | nil
-  defp parse_server_log_line(line, pattern) when is_binary(line) do
-    case Regex.run(pattern, line) do
+  @spec parse_server_log_line(String.t(), Regex.t(), Regex.t()) :: ServerLogEntry.t() | nil
+  defp parse_server_log_line(line, toolshed_pattern, pino_pattern) when is_binary(line) do
+    # Try toolshed format first
+    case Regex.run(toolshed_pattern, line) do
       [_, level, module, hours, minutes, seconds, millis, message] ->
         timestamp = build_timestamp(hours, minutes, seconds, millis)
 
@@ -187,8 +213,22 @@ defmodule LogViewer.Parser do
         }
 
       nil ->
-        # Malformed line, skip it
-        nil
+        # Try pino format
+        case Regex.run(pino_pattern, line) do
+          [_, hours, minutes, seconds, millis, level, message] ->
+            timestamp = build_timestamp(hours, minutes, seconds, millis)
+
+            %ServerLogEntry{
+              timestamp: timestamp,
+              level: level,
+              module: "pino",
+              message: message
+            }
+
+          nil ->
+            # No match - this is a continuation line
+            nil
+        end
     end
   end
 

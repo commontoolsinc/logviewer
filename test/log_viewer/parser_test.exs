@@ -220,16 +220,16 @@ defmodule LogViewer.ParserTest do
       assert log.timestamp > 1_000_000_000_000
     end
 
-    test "skips malformed lines gracefully" do
+    test "appends continuation lines to previous entry" do
       text = """
       [INFO][test::14:30:45.123] Valid line
-      This is not a valid log line
+      This is a continuation line
       [ERROR][test::14:30:45.456] Another valid line
       """
 
       logs = Parser.parse_server_logs(text)
       assert length(logs) == 2
-      assert Enum.at(logs, 0).message == "Valid line"
+      assert Enum.at(logs, 0).message == "Valid line\nThis is a continuation line"
       assert Enum.at(logs, 1).message == "Another valid line"
     end
 
@@ -247,6 +247,72 @@ defmodule LogViewer.ParserTest do
       memory_log = Enum.find(logs, fn log -> log.module == "memory" end)
       assert memory_log != nil
       assert memory_log.message =~ "Stored doc"
+    end
+
+    test "handles multi-line messages with JSON" do
+      text = """
+      [INFO][memory-provider::20:02:56.052] server-transact Received transaction: space: did:key:z6MkrHvEHMtMVoWq5iGheNMZ5bo9bfu47Q1Hn6LUVtqN1Hz8 changes: {
+        "of:baedreigmsmh34uq4qfkaq56uwjg4ayg5do3p2npnaaeqt6etwcycbro2g4": {
+          "application/json": {
+            "test": "value"
+          }
+        }
+      }
+      [INFO][memory::20:02:57.100] Simple log message
+      """
+
+      logs = Parser.parse_server_logs(text)
+      assert length(logs) == 2
+
+      [first, second] = logs
+
+      # First log should capture the entire multi-line message including JSON
+      assert first.level == "INFO"
+      assert first.module == "memory-provider"
+      assert first.message =~ "server-transact Received transaction"
+      assert first.message =~ "changes: {"
+      assert first.message =~ "\"test\": \"value\""
+      assert first.message =~ "}"
+
+      # Second log is a simple single-line message
+      assert second.level == "INFO"
+      assert second.module == "memory"
+      assert second.message == "Simple log message"
+    end
+
+    test "does not combine different log formats into one entry" do
+      # Pino format logs [HH:MM:SS.mmm] LEVEL (pid): message should be parsed
+      # as separate entries from toolshed format [LEVEL][module::HH:MM:SS.mmm] message
+      text = """
+      [WARN][memory-provider::20:02:49.006] server-transact-error Transaction failed: {
+        "name": "ConflictError",
+        "stack": "ConflictError: The application/json already exists"
+      }
+      [21:02:49.151] INFO (91359): Request completed
+      [21:02:49.158] INFO (91359): Request completed
+      """
+
+      logs = Parser.parse_server_logs(text)
+
+      # Should return 3 separate logs (1 toolshed + 2 pino)
+      assert length(logs) == 3
+
+      [first, second, third] = logs
+
+      # First is toolshed WARN with multi-line JSON
+      assert first.level == "WARN"
+      assert first.module == "memory-provider"
+      assert first.message =~ "Transaction failed"
+      assert first.message =~ "ConflictError"
+      # Should NOT contain the pino logs
+      refute first.message =~ "[21:02:49.151]"
+
+      # Second and third are pino INFO logs
+      assert second.level == "INFO"
+      assert second.message == "Request completed"
+
+      assert third.level == "INFO"
+      assert third.message == "Request completed"
     end
   end
 

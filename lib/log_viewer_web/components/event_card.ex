@@ -49,9 +49,7 @@ defmodule LogViewerWeb.Components.EventCard do
         </span>
         <span class="text-xs text-gray-500"><%= @event.module %></span>
       </div>
-      <p class="text-sm font-mono text-gray-700">
-        <%= HTML.raw(Search.highlight_text(@event.message, @search_query)) %>
-      </p>
+      <p class="text-sm font-mono text-gray-700 whitespace-pre-wrap"><%= HTML.raw(Search.highlight_text(@event.message, @search_query)) %></p>
     </div>
     """
   end
