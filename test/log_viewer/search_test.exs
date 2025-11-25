@@ -216,6 +216,108 @@ defmodule LogViewer.SearchTest do
       assert result =~ "&amp;"
     end
 
+    test "skips HTML tags when highlighting" do
+      # Text with HTML tags (like after make_ids_clickable)
+      text = ~s(Document <span class="clickable-id" phx-click="toggle_track" phx-value-id="ba4jcb123">ba4jcb123</span> stored)
+      query = "ba4"
+
+      result = Search.highlight_text(text, query)
+
+      # Should only highlight the visible text "ba4jcb123", not inside HTML attributes
+      assert result =~ ~s(phx-value-id="ba4jcb123">)  # Attribute unchanged
+      assert result =~ ~s(<mark class="bg-yellow-200">ba4</mark>)  # Visible text highlighted
+
+      # Should NOT have marks inside the attribute value
+      refute result =~ ~s(phx-value-id="<mark)
+    end
+
+    test "skips multiple HTML tags when highlighting" do
+      text = ~s(Found <span class="id">ba4jcb123</span> and <span class="id">ba4jcb456</span>)
+      query = "ba4"
+
+      result = Search.highlight_text(text, query)
+
+      # Should highlight inside both spans
+      assert result =~ ~s(<span class="id"><mark class="bg-yellow-200">ba4</mark>)
+
+      # Should NOT modify the span tags themselves
+      assert result =~ ~s(<span class="id">)
+      refute result =~ ~s(<mark class="bg-yellow-200">span)
+    end
+
+    test "skips self-closing HTML tags" do
+      text = ~s(Line 1<br/>Line 2 with ba4jcb123)
+      query = "ba4"
+
+      result = Search.highlight_text(text, query)
+
+      # Should keep <br/> intact
+      assert result =~ "<br/>"
+      refute result =~ ~s(<mark class="bg-yellow-200">br)
+
+      # Should highlight the visible text
+      assert result =~ ~s(<mark class="bg-yellow-200">ba4</mark>)
+    end
+
+    test "handles nested HTML tags" do
+      text = ~s(<div><span class="outer"><span class="inner">ba4jcb123</span></span></div>)
+      query = "ba4"
+
+      result = Search.highlight_text(text, query)
+
+      # All tags should remain unchanged
+      assert result =~ ~s(<div><span class="outer"><span class="inner">)
+      assert result =~ "</span></span></div>"
+
+      # Only the innermost text should be highlighted
+      assert result =~ ~s(<mark class="bg-yellow-200">ba4</mark>)
+    end
+
+    test "handles HTML with attributes containing search query" do
+      # This is the key test - query appears in both attribute and visible text
+      text = ~s(<span data-id="csriw444">Text with csriw444 inside</span>)
+      query = "csriw444"
+
+      result = Search.highlight_text(text, query)
+
+      # Attribute should NOT be modified
+      assert result =~ ~s(data-id="csriw444")
+      refute result =~ ~s(data-id="<mark)
+
+      # Only visible text should be highlighted
+      assert result =~ ~s(Text with <mark class="bg-yellow-200">csriw444</mark>)
+    end
+
+    test "handles empty HTML tags" do
+      text = ~s(<span></span>ba4jcb123)
+      query = "ba4"
+
+      result = Search.highlight_text(text, query)
+
+      # Empty tags should remain unchanged
+      assert result =~ "<span></span>"
+
+      # Text after tags should be highlighted
+      assert result =~ ~s(<mark class="bg-yellow-200">ba4</mark>)
+    end
+
+    test "fuzzy match across HTML boundaries (DID with trailing quote)" do
+      # This simulates searching for a DID with trailing quote after make_ids_clickable()
+      # Original: "did:key:z6MkmcNT8nApM6ncb55zBbbsxWxbai3PSuoMA9tEHLH4UGPk": "OWNER"
+      # After make_ids_clickable: "<span>did:key:z6MkmcNT8nApM6ncb55zBbbsxWxbai3PSuoMA9tEHLH4UGPk</span>": "OWNER"
+      text = ~s("<span class="clickable-id">did:key:z6MkmcNT8nApM6ncb55zBbbsxWxbai3PSuoMA9tEHLH4UGPk</span>": "OWNER")
+      query = ~s(did:key:z6MkmcNT8nApM6ncb55zBbbsxWxbai3PSuoMA9tEHLH4UGPk")
+
+      result = Search.highlight_text(text, query)
+
+      # Should highlight the DID inside the span
+      assert result =~ ~s(<mark class="bg-yellow-200">did:key:z6MkmcNT8nApM6ncb55zBbbsxWxbai3PSuoMA9tEHLH4UGPk</mark>)
+      # Should highlight the quote after the span
+      assert result =~ ~s(</span><mark class="bg-yellow-200">"</mark>:)
+      # Should NOT have marks inside HTML attributes
+      refute result =~ ~s(class="<mark)
+    end
+
     test "fuzzy highlights non-consecutive characters" do
       text = "runner"
       query = "rnr"

@@ -114,38 +114,149 @@ defmodule LogViewer.Search do
         text
 
       true ->
-        text_lower = String.downcase(text)
-        query_lower = String.downcase(query)
+        # Split text into HTML tags and text content
+        # HTML tags are preserved as-is, only text content is highlighted
+        segments = split_html_segments(text)
 
-        # Find positions of matched characters
-        case find_fuzzy_positions(text_lower, query_lower, 0, []) do
-          [] ->
-            # No match found
-            text
+        # First check if pattern matches across all text (ignoring HTML)
+        combined_text =
+          segments
+          |> Enum.filter(fn {type, _} -> type == :text end)
+          |> Enum.map(fn {:text, content} -> content end)
+          |> Enum.join()
 
-          positions ->
-            # Group adjacent positions and build highlighted string
-            build_highlighted_string(text, positions)
+        if fuzzy_match?(combined_text, query) do
+          # Pattern matches! Highlight across segments progressively
+          highlight_across_segments(segments, String.downcase(query))
+        else
+          # No match, return original
+          text
         end
     end
   end
 
-  # Find positions of characters that match the fuzzy pattern
-  @spec find_fuzzy_positions(String.t(), String.t(), integer(), list(integer())) ::
-          list(integer())
-  defp find_fuzzy_positions(_text, "", _offset, acc), do: Enum.reverse(acc)
-  defp find_fuzzy_positions("", _pattern, _offset, _acc), do: []
+  # Split text into HTML tags and text content segments
+  @spec split_html_segments(String.t()) :: list({:tag | :text, String.t()})
+  defp split_html_segments(text) do
+    # Regex to match HTML tags: <...> or </...> or <.../>, including any content inside
+    # We use a simple approach: anything between < and > is a tag
+    parts = Regex.split(~r/(<[^>]+>)/, text, include_captures: true, trim: true)
 
-  defp find_fuzzy_positions(text, <<char::utf8, rest_pattern::binary>>, offset, acc) do
-    case String.split(text, <<char::utf8>>, parts: 2) do
-      [before, after_match] ->
-        # Found the character, record its position
-        pos = offset + String.length(before)
-        find_fuzzy_positions(after_match, rest_pattern, pos + 1, [pos | acc])
+    Enum.map(parts, fn part ->
+      if String.starts_with?(part, "<") and String.ends_with?(part, ">") do
+        {:tag, part}
+      else
+        {:text, part}
+      end
+    end)
+  end
 
-      [_] ->
-        # Character not found, no match
-        []
+  # Highlight segments progressively, tracking remaining pattern across segments
+  @spec highlight_across_segments(list({:tag | :text, String.t()}), String.t()) :: String.t()
+  defp highlight_across_segments(segments, pattern) do
+    {result, _remaining_pattern} =
+      Enum.map_reduce(segments, pattern, fn segment, remaining_pattern ->
+        case segment do
+          {:tag, tag_text} ->
+            # Keep HTML tags unchanged, pattern unchanged
+            {tag_text, remaining_pattern}
+
+          {:text, text_content} ->
+            # Highlight this segment's portion of the pattern
+            highlight_and_consume_pattern(text_content, remaining_pattern)
+        end
+      end)
+
+    Enum.join(result)
+  end
+
+  # Highlight text segment and return remaining pattern
+  @spec highlight_and_consume_pattern(String.t(), String.t()) :: {String.t(), String.t()}
+  defp highlight_and_consume_pattern(text, "") do
+    # No more pattern to match, return text as-is
+    {text, ""}
+  end
+
+  defp highlight_and_consume_pattern(text, pattern) do
+    text_lower = String.downcase(text)
+
+    # Find how much of the pattern we can match in this text
+    {positions, remaining_pattern} = consume_pattern_greedily(text_lower, pattern, 0, [])
+
+    if positions == [] do
+      # Couldn't match any of the pattern here
+      {text, pattern}
+    else
+      # Highlight the positions we found
+      highlighted = build_highlighted_string(text, Enum.reverse(positions))
+      {highlighted, remaining_pattern}
+    end
+  end
+
+  # Try to match as much of pattern as possible in text, return positions and remaining
+  # Prefers consecutive substring matches over scattered character matches
+  @spec consume_pattern_greedily(String.t(), String.t(), integer(), list(integer())) ::
+          {list(integer()), String.t()}
+  defp consume_pattern_greedily(_text, "", _offset, acc) do
+    # No more pattern to consume
+    {acc, ""}
+  end
+
+  defp consume_pattern_greedily("", remaining_pattern, _offset, acc) do
+    # No more text, return what we found and remaining pattern
+    {acc, remaining_pattern}
+  end
+
+  defp consume_pattern_greedily(text, pattern, offset, acc) do
+    # First, try to find the longest consecutive substring of the pattern in the text
+    case find_longest_substring_match(text, pattern) do
+      {match_pos, match_len} when match_len > 0 ->
+        # Found a consecutive match! Record all positions
+        positions = Enum.map(0..(match_len - 1), fn i -> offset + match_pos + i end)
+        # Continue after the match with the remaining pattern
+        remaining_pattern = String.slice(pattern, match_len..-1//1)
+        remaining_text = String.slice(text, (match_pos + match_len)..-1//1)
+        consume_pattern_greedily(remaining_text, remaining_pattern, offset + match_pos + match_len, positions ++ acc)
+
+      _ ->
+        # No consecutive match found, fall back to single character matching
+        <<char::utf8, rest_pattern::binary>> = pattern
+        case String.split(text, <<char::utf8>>, parts: 2) do
+          [before, after_match] ->
+            # Found the character, record its position
+            pos = offset + String.length(before)
+            # Continue with rest of pattern and rest of text
+            consume_pattern_greedily(after_match, rest_pattern, pos + 1, [pos | acc])
+
+          [_] ->
+            # Character not found in this text, stop here
+            {acc, pattern}
+        end
+    end
+  end
+
+  # Find the longest consecutive substring of pattern that appears in text
+  # Returns {position, length} or {0, 0} if no match
+  @spec find_longest_substring_match(String.t(), String.t()) :: {integer(), integer()}
+  defp find_longest_substring_match(text, pattern) do
+    # Try matching progressively shorter prefixes of the pattern
+    # Start with the full pattern and work down
+    pattern_len = String.length(pattern)
+    find_longest_substring_match_helper(text, pattern, pattern_len)
+  end
+
+  defp find_longest_substring_match_helper(_text, _pattern, 0), do: {0, 0}
+
+  defp find_longest_substring_match_helper(text, pattern, try_len) do
+    prefix = String.slice(pattern, 0, try_len)
+    case :binary.match(text, prefix) do
+      {pos, ^try_len} ->
+        # Found a match of this length!
+        {pos, try_len}
+
+      _ ->
+        # No match, try shorter prefix
+        find_longest_substring_match_helper(text, pattern, try_len - 1)
     end
   end
 
