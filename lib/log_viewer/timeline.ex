@@ -126,6 +126,7 @@ defmodule LogViewer.Timeline do
   end
 
   # Convert a message part to string, handling maps/lists as JSON and nil as empty string
+  @spec message_part_to_string(any()) :: String.t()
   defp message_part_to_string(nil), do: ""
   defp message_part_to_string(part) when is_map(part), do: Jason.encode!(part)
   defp message_part_to_string(part) when is_list(part), do: Jason.encode!(part)
