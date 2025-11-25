@@ -10,15 +10,19 @@ This document outlines the development plan for the LogViewer Phoenix LiveView a
 - **Phase 3.1: Event Card Component** - Separate, testable component with full test coverage
 
 ### 🚧 In Progress
-- **Phase 4.2b: True Fuzzy Search** - Upgrading from substring to fuzzy matching (like Helix)
+- **Phase 4.2c: Improved Fuzzy Matching Algorithm** - Prefer shorter spans and consecutive characters (like Helix)
 
 ### ✅ Recently Completed
+- **Phase 4.2d: Line-Bounded Fuzzy Highlighting** - Fixed highlighting to respect line boundaries (no cross-line matches)
+- **Phase 4.2b: True Fuzzy Search** - Upgraded from substring to fuzzy matching (characters in order)
 - **Phase 4.2a: Substring Search** - Case-insensitive substring search with highlighting implemented and tested
 
 ### 📋 Next Steps
-1. Complete true fuzzy search implementation (characters in order, not consecutive)
-2. Add entity list and detail components
-3. Build statistics dashboard
+1. ~~Complete true fuzzy search implementation (characters in order, not consecutive)~~ ✅
+2. Improve fuzzy matching algorithm to prefer shorter spans (like Helix)
+3. ~~Fix search highlighting to not break HTML structure and respect line boundaries~~ ✅
+4. Add entity list and detail components
+5. Build statistics dashboard
 
 ## TDD Workflow
 
@@ -527,6 +531,265 @@ end
 - `"stt"` should match "**s**torage-**t**ransac**t**ion"
 - `"z6mkr"` should match "did:key:**z**6**Mkr**HvEHMtM..."
 - `"err"` should match "**err**or", "st**o**r**a**g**e**-**err**or", etc.
+
+---
+
+### 4.2c Improved Fuzzy Matching Algorithm (Better Match Quality)
+
+**Goal**: Upgrade fuzzy matching to prefer shorter spans and consecutive characters, like Helix editor does.
+
+**Current Behavior** (Greedy Left-to-Right):
+```
+Search: "la"
+Text:   "lib/log_viewer_web/components/layouts.ex"
+Match:  "lib" (first 'l') + "layouts" (first 'a' after 'l')
+         └─┘                 └─┘
+         Span: ~28 characters
+```
+
+**Desired Behavior** (Shortest Span / Best Match):
+```
+Search: "la"
+Text:   "lib/log_viewer_web/components/layouts.ex"
+Match:  "layouts" (consecutive 'la')
+                   └──┘
+         Span: 2 characters (consecutive!)
+```
+
+**Problem with Current Algorithm**:
+Our current implementation in `lib/log_viewer/search.ex` uses a simple greedy algorithm:
+```elixir
+defp do_fuzzy_match?(text, <<char::utf8, rest::binary>>) do
+  case String.split(text, <<char::utf8>>, parts: 2) do
+    [_before, after_match] -> do_fuzzy_match?(after_match, rest)
+    [_] -> false
+  end
+end
+```
+
+This finds the **first occurrence** of each character, which can result in:
+- Long spans with characters far apart
+- Less intuitive matches
+- Poor user experience when searching
+
+**Proposed Solution**:
+Implement a "best match" algorithm that:
+1. Finds **all possible matches** in the text
+2. Scores each match by:
+   - **Span length** (shorter is better)
+   - **Consecutiveness** (adjacent chars score higher)
+   - **Word boundaries** (matches at start of words score higher)
+3. Returns the **best scoring match**
+4. Uses that match for highlighting
+
+**Algorithm Options**:
+
+**Option A: Shortest Span** (Simple)
+- Find all possible matches
+- Calculate span length for each
+- Choose the match with shortest span
+- Time complexity: O(n*m) where n=text length, m=pattern length
+
+**Option B: Weighted Scoring** (More sophisticated)
+- Score based on multiple factors:
+  - Span length: shorter = better
+  - Consecutiveness: adjacent chars = bonus points
+  - Word boundaries: match at word start = bonus points
+  - Case match: exact case match = bonus points
+- Choose highest scoring match
+- Time complexity: O(n*m)
+
+**Implementation Strategy**:
+
+```elixir
+# Keep existing fuzzy_match?/2 for simple yes/no matching
+@spec fuzzy_match?(String.t(), String.t()) :: boolean()
+def fuzzy_match?(text, pattern) do
+  # Current greedy implementation - fast, works for filtering
+end
+
+# New function for finding best match positions
+@spec find_best_match(String.t(), String.t()) :: {:ok, list(integer())} | :no_match
+defp find_best_match(text, pattern) do
+  # Find all possible matches
+  # Score each match
+  # Return positions of best match for highlighting
+end
+
+# Update highlight_text/2 to use find_best_match/2
+def highlight_text(text, query) do
+  case find_best_match(text, query) do
+    {:ok, positions} -> build_highlighted_string(text, positions)
+    :no_match -> text
+  end
+end
+```
+
+**Test Cases**:
+```elixir
+describe "find_best_match/2" do
+  test "prefers consecutive characters over distant ones" do
+    # "la" in "lib/log_viewer/layouts.ex" should match "layouts" not "lib...la"
+    assert find_best_match("lib/log_viewer/layouts.ex", "la") == {:ok, [20, 21]}
+  end
+
+  test "prefers shorter spans when multiple matches exist" do
+    assert find_best_match("babel labrador", "la") == {:ok, [2, 3]}  # "babel"
+  end
+
+  test "prefers word boundary matches" do
+    # "la" should prefer "layouts" over "bilateral"
+    assert find_best_match("bilateral layouts", "la") == {:ok, [10, 11]}
+  end
+
+  test "handles no match case" do
+    assert find_best_match("example", "xyz") == :no_match
+  end
+end
+```
+
+**TDD Steps**:
+1. **RED**: Write tests for `find_best_match/2` (should fail)
+2. **RED**: Update `highlight_text/2` tests to expect better matches
+3. **GREEN**: Implement `find_best_match/2` with shortest span algorithm
+4. **GREEN**: Update `highlight_text/2` to use new algorithm
+5. **REFACTOR**: Optimize if needed
+6. **TEST**: Verify with Playwright that "la" now matches "layouts" not "lib"
+
+**Performance Considerations**:
+- Current greedy algorithm: O(n) - very fast
+- Shortest span algorithm: O(n*m) - still acceptable for typical log messages
+- Can optimize by:
+  - Early termination when perfect match found (consecutive chars)
+  - Caching results for repeated searches
+  - Limiting search to first N matches if too many possibilities
+
+**References**:
+- See Helix editor's fuzzy matching behavior (screenshot in `~/Pictures/Screenshots/Screenshot_20251125_030218.png`)
+- See ISSUE.md for related highlighting problems
+
+---
+
+### 4.2d Line-Bounded Fuzzy Highlighting ✅ COMPLETE
+
+**Status**: Implemented with 44 passing tests (including 1 new test for cross-line highlighting)
+
+**Problem**:
+The fuzzy search was correctly matching patterns only within single lines (via `fuzzy_match?/2`), but the highlighting implementation (`highlight_text/2`) was highlighting matches across multiple lines. This created a mismatch where search behavior was line-bounded but highlighting was not.
+
+**Root Cause**:
+The original implementation processed HTML segments progressively with `Enum.map_reduce`, carrying the `remaining_pattern` from one segment to the next. Since HTML segments are divided by tags (not newlines), this allowed pattern matching to span across multiple lines.
+
+**Example Bug**:
+```elixir
+# Searching for "ba4jcb" in multiline text:
+"""
+Line with word beginning    # 'b' from "beginning" incorrectly highlighted
+Another line with an apple   # 'a' from "an" incorrectly highlighted
+The pattern ba4jcb exists here  # Actual match on this line
+"""
+
+# Result: Scattered characters on lines 1-2 were highlighted
+# even though the pattern only exists on line 3
+```
+
+**Solution**:
+Redesigned `highlight_text/2` to process each line independently:
+
+1. Split text by newlines
+2. For each line:
+   - Check if pattern matches that line (using `fuzzy_match?/2`)
+   - If yes, try to highlight it
+   - Only use highlighted version if full pattern was consumed (`remaining_pattern == ""`)
+   - Otherwise keep original line unchanged
+3. Join lines back together
+
+**Implementation**: `lib/log_viewer/search.ex:111-183`
+
+**Key Changes**:
+```elixir
+# New approach: line-bounded highlighting
+def highlight_text(text, query) do
+  lines = String.split(text, "\n", trim: false)
+
+  highlighted_lines = Enum.map(lines, fn line ->
+    if fuzzy_match?(line, query) do
+      segments = split_html_segments(line)
+      {highlighted_line, remaining_pattern} =
+        highlight_across_segments_with_remaining(segments, String.downcase(query))
+
+      # Only use highlighted version if full pattern matched
+      if remaining_pattern == "" do
+        highlighted_line
+      else
+        line
+      end
+    else
+      line
+    end
+  end)
+
+  Enum.join(highlighted_lines, "\n")
+end
+
+# New helper: returns both highlighted text AND remaining pattern
+defp highlight_across_segments_with_remaining(segments, pattern) do
+  {result, remaining_pattern} =
+    Enum.map_reduce(segments, pattern, fn segment, remaining_pattern ->
+      # ... highlight logic ...
+    end)
+
+  {Enum.join(result), remaining_pattern}
+end
+```
+
+**Test Coverage**:
+
+**New Test** (`test/log_viewer/search_test.exs:384-410`):
+```elixir
+test "should not highlight scattered characters on other lines" do
+  text = """
+  Line with word beginning
+  Another line with an apple
+  The pattern ba4jcb exists here
+  """
+
+  query = "ba4jcb"
+  result = Search.highlight_text(text, query)
+
+  # Should ONLY highlight on line 3 where pattern exists
+  assert result =~ ~s(The pattern <mark class="bg-yellow-200">ba4jcb</mark> exists here)
+
+  # Should NOT highlight scattered characters on other lines
+  refute result =~ ~s(<mark class="bg-yellow-200">b</mark>eginning)
+  refute result =~ ~s(with <mark class="bg-yellow-200">a</mark>n apple)
+end
+```
+
+**All Existing Tests**: 44 tests pass, including:
+- Fuzzy matching tests
+- Highlighting tests with HTML preservation
+- Search timeline tests
+- Edge cases (empty queries, no matches, etc.)
+
+**Benefits**:
+- ✅ Highlighting now matches search behavior (both are line-bounded)
+- ✅ More accurate and intuitive highlighting for users
+- ✅ HTML structure still preserved correctly
+- ✅ Fuzzy matching still works across segments within a line
+- ✅ No performance degradation
+
+**Related Files**:
+- `lib/log_viewer/search.ex:111-183` - Line-bounded highlighting implementation
+- `test/log_viewer/search_test.exs:384-410` - Test for cross-line highlighting bug
+- `ISSUE_LINES.md` - Detailed analysis of the bug and architecture
+- `ISSUE.md` - Original bug report
+
+**TDD Steps Taken**:
+1. **RED**: Created failing test showing 'b' from "beginning" incorrectly highlighted
+2. **GREEN**: Implemented line-bounded highlighting (test now passes)
+3. **REFACTOR**: Removed unused function, verified no warnings
+4. **VERIFY**: All 44 tests pass ✅
 
 ---
 

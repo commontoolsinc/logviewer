@@ -67,6 +67,20 @@ defmodule LogViewer.IDTrackerTest do
         "ba4jcb42pnncmidswc74irsanxjqv7wvlu5csriw444whfypprbkw3rjm"
       ]
     end
+
+    test "does not match CID-like substrings within other strings" do
+      # This multiline text contains a long base64-like string with "ba" + 49+ chars as a substring
+      # It should NOT be extracted as a CID, only actual standalone CIDs should match
+      text = """
+      Processing request with token: abc123defbai3psumoa9tehllh4ugpkwxbai3psumoa9tehllh4ugpkwxyz789
+      Stored doc baedreic7dvjvssmh6b62azkrx6o4wmymbbwffgx3brpte2ykm3y6ukepzm successfully
+      """
+
+      # Should only extract the real CID, not the substring from the token
+      assert IDTracker.extract_clickable_ids(text) == [
+        "baedreic7dvjvssmh6b62azkrx6o4wmymbbwffgx3brpte2ykm3y6ukepzm"
+      ]
+    end
   end
 
   describe "make_ids_clickable/1" do

@@ -380,6 +380,55 @@ defmodule LogViewer.SearchTest do
       assert result == text
       refute result =~ "<mark"
     end
+
+    test "should not highlight scattered characters on other lines" do
+      # Pattern EXISTS on line 3, but other lines have scattered characters
+      # Current bug: highlights scattered chars on lines 1-2 AND the actual match on line 3
+      text = """
+      Line with word beginning
+      Another line with an apple
+      The pattern ba4jcb exists here
+      """
+
+      # Pattern "ba4jcb" exists on line 3
+      # But buggy implementation would ALSO highlight:
+      # 'b' from "beginning" on line 1
+      # 'a' from "an" on line 2
+      # And then '4jcb' from line 3
+      query = "ba4jcb"
+
+      result = Search.highlight_text(text, query)
+
+      # Should ONLY highlight on line 3 where the pattern actually exists
+      assert result =~ ~s(The pattern <mark class="bg-yellow-200">ba4jcb</mark> exists here)
+
+      # Should NOT highlight scattered characters on other lines
+      refute result =~ ~s(Line with word <mark), "Should not highlight 'b' from line 1"
+      refute result =~ ~s(<mark class="bg-yellow-200">b</mark>eginning), "Should not highlight 'b' from 'beginning'"
+      refute result =~ ~s(Another line with <mark), "Should not highlight 'a' from line 2"
+      refute result =~ ~s(with <mark class="bg-yellow-200">a</mark>n apple), "Should not highlight 'a' from 'an apple'"
+    end
+
+    test "should highlight on line where full pattern exists" do
+      # Message with pattern appearing on one line but scattered chars on others
+      text = """
+      Line with word beginning
+      Another line with ba42 in it
+      Final line with number 42
+      """
+
+      # Pattern "ba4" exists on line 2 as "ba42"
+      query = "ba4"
+
+      result = Search.highlight_text(text, query)
+
+      # Should highlight on line 2 only
+      assert result =~ ~s(Another line with <mark class="bg-yellow-200">ba4</mark>2 in it)
+
+      # Should NOT highlight on line 1 or 3
+      refute result =~ ~s(Line with word <mark)
+      refute result =~ ~s(Final line with number <mark)
+    end
   end
 
   describe "fuzzy_match?/2" do
@@ -451,6 +500,37 @@ defmodule LogViewer.SearchTest do
 
       # "ghi" on the third line SHOULD also match
       assert Search.fuzzy_match?(multiline_message, "ghi")
+    end
+
+    test "should not match across newlines in formatted JSON" do
+      # Real-world case: formatted JSON with pattern characters on different lines
+      json_message = """
+      server-transact Received transaction: {
+        "type": "create",
+        "space": "memory",
+        "document": {
+          "id": "doc123",
+          "value": {
+            "owner": "alice"
+          }
+        }
+      }
+      """
+
+      # Pattern: "tsdoc where:
+      # - " appears on line 2 (in "type")
+      # - t appears on line 2 (in "type")
+      # - s appears on line 3 (in "space")
+      # - d appears on line 4 (in "document")
+      # - o appears on line 5 (in "id": "doc123")
+      # - c appears on line 5 (in "doc123")
+      # This SHOULD NOT match because the pattern spans lines 2-5
+      refute Search.fuzzy_match?(json_message, "\"tsdoc")
+
+      # However, searching within a single line SHOULD work
+      assert Search.fuzzy_match?(json_message, "transaction")
+      assert Search.fuzzy_match?(json_message, "\"type\"")
+      assert Search.fuzzy_match?(json_message, "doc123")
     end
   end
 end

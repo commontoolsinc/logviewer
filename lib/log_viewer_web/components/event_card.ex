@@ -46,9 +46,9 @@ defmodule LogViewerWeb.Components.EventCard do
           "px-2 py-1 text-xs rounded",
           level_badge_color(@event.level)
         ]}>
-          <%= @event.level %>
+          <%= HTML.raw(Search.highlight_text(@event.level, @search_query)) %>
         </span>
-        <span class="text-xs text-gray-500"><%= @event.module %></span>
+        <span class="text-xs text-gray-500"><%= HTML.raw(Search.highlight_text(@event.module, @search_query)) %></span>
       </div>
       <p class="text-sm font-mono text-gray-700 whitespace-pre-wrap"><%= HTML.raw(format_message(@event.message, @search_query)) %></p>
     </div>

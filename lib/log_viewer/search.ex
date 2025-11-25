@@ -114,24 +114,35 @@ defmodule LogViewer.Search do
         text
 
       true ->
-        # Split text into HTML tags and text content
-        # HTML tags are preserved as-is, only text content is highlighted
-        segments = split_html_segments(text)
+        # Process each line independently to ensure highlighting doesn't cross line boundaries
+        lines = String.split(text, "\n", trim: false)
 
-        # First check if pattern matches across all text (ignoring HTML)
-        combined_text =
-          segments
-          |> Enum.filter(fn {type, _} -> type == :text end)
-          |> Enum.map(fn {:text, content} -> content end)
-          |> Enum.join()
+        highlighted_lines = Enum.map(lines, fn line ->
+          # Skip empty lines
+          if line == "" do
+            line
+          else
+            # Check if pattern matches this line
+            if fuzzy_match?(line, query) do
+              # Pattern matches this line, try to highlight it
+              segments = split_html_segments(line)
+              {highlighted_line, remaining_pattern} =
+                highlight_across_segments_with_remaining(segments, String.downcase(query))
 
-        if fuzzy_match?(combined_text, query) do
-          # Pattern matches! Highlight across segments progressively
-          highlight_across_segments(segments, String.downcase(query))
-        else
-          # No match, return original
-          text
-        end
+              # Only use highlighted version if full pattern was consumed
+              if remaining_pattern == "" do
+                highlighted_line
+              else
+                line
+              end
+            else
+              # Pattern doesn't match this line, keep it unchanged
+              line
+            end
+          end
+        end)
+
+        Enum.join(highlighted_lines, "\n")
     end
   end
 
@@ -152,9 +163,10 @@ defmodule LogViewer.Search do
   end
 
   # Highlight segments progressively, tracking remaining pattern across segments
-  @spec highlight_across_segments(list({:tag | :text, String.t()}), String.t()) :: String.t()
-  defp highlight_across_segments(segments, pattern) do
-    {result, _remaining_pattern} =
+  # Returns both the highlighted text and remaining pattern
+  @spec highlight_across_segments_with_remaining(list({:tag | :text, String.t()}), String.t()) :: {String.t(), String.t()}
+  defp highlight_across_segments_with_remaining(segments, pattern) do
+    {result, remaining_pattern} =
       Enum.map_reduce(segments, pattern, fn segment, remaining_pattern ->
         case segment do
           {:tag, tag_text} ->
@@ -167,7 +179,7 @@ defmodule LogViewer.Search do
         end
       end)
 
-    Enum.join(result)
+    {Enum.join(result), remaining_pattern}
   end
 
   # Highlight text segment and return remaining pattern
@@ -208,6 +220,38 @@ defmodule LogViewer.Search do
   end
 
   defp consume_pattern_greedily(text, pattern, offset, acc) do
+    # Check if text contains a newline - if so, only match up to the newline
+    case String.split(text, "\n", parts: 2) do
+      [_single_line] ->
+        # No newline, proceed with normal matching
+        do_consume_pattern(text, pattern, offset, acc)
+
+      [before_newline, _after_newline] ->
+        # Has newline - only match within the current line
+        case do_consume_pattern(before_newline, pattern, offset, acc) do
+          {positions, ""} ->
+            # Pattern fully matched within this line
+            {positions, ""}
+
+          {positions, remaining_pattern} ->
+            # Pattern not fully matched - stop here (don't cross line boundary)
+            {positions, remaining_pattern}
+        end
+    end
+  end
+
+  # Helper function that does the actual pattern consumption logic
+  defp do_consume_pattern(_text, "", _offset, acc) do
+    # No more pattern to consume
+    {acc, ""}
+  end
+
+  defp do_consume_pattern("", remaining_pattern, _offset, acc) do
+    # No more text, return what we found and remaining pattern
+    {acc, remaining_pattern}
+  end
+
+  defp do_consume_pattern(text, pattern, offset, acc) do
     # First, try to find the longest consecutive substring of the pattern in the text
     case find_longest_substring_match(text, pattern) do
       {match_pos, match_len} when match_len > 0 ->
@@ -216,7 +260,7 @@ defmodule LogViewer.Search do
         # Continue after the match with the remaining pattern
         remaining_pattern = String.slice(pattern, match_len..-1//1)
         remaining_text = String.slice(text, (match_pos + match_len)..-1//1)
-        consume_pattern_greedily(remaining_text, remaining_pattern, offset + match_pos + match_len, positions ++ acc)
+        do_consume_pattern(remaining_text, remaining_pattern, offset + match_pos + match_len, positions ++ acc)
 
       _ ->
         # No consecutive match found, fall back to single character matching
@@ -226,7 +270,7 @@ defmodule LogViewer.Search do
             # Found the character, record its position
             pos = offset + String.length(before)
             # Continue with rest of pattern and rest of text
-            consume_pattern_greedily(after_match, rest_pattern, pos + 1, [pos | acc])
+            do_consume_pattern(after_match, rest_pattern, pos + 1, [pos | acc])
 
           [_] ->
             # Character not found in this text, stop here

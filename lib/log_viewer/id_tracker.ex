@@ -6,7 +6,7 @@ defmodule LogViewer.IDTracker do
   # Regex patterns for entity IDs
   # CIDs start with "ba" followed by alphanumeric characters (49+ chars, 51+ total)
   # This matches various CID formats: baedrei..., ba4jcb..., bafyrei..., etc.
-  @cid_pattern ~r/ba[a-z0-9]{49,}/
+  @cid_pattern ~r/\bba[a-z0-9]{49,}\b/
   # DIDs follow the format: did:key:z6Mk followed by base58 characters
   @did_pattern ~r/did:key:z6Mk[A-HJ-NP-Za-km-z1-9]+/
 
